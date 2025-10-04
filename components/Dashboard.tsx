@@ -84,28 +84,20 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-gray-800 rounded-2xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">
-              {user ? 'Create New Schedule' : 'Send Webhook (Login for Scheduling)'}
-            </h2>
-            {user ? (
-              <ScheduleForm onSuccess={handleScheduleCreated} />
-            ) : (
-              <div className="text-center">
-                <p className="text-gray-400 mb-4">Login with Discord to create scheduled webhooks</p>
-                <Login />
-              </div>
-            )}
+            <h2 className="text-xl font-semibold text-white mb-4">Send Webhook</h2>
+            <ScheduleForm onSuccess={handleScheduleCreated} />
           </div>
 
           <div className="bg-gray-800 rounded-2xl p-6">
             <h2 className="text-xl font-semibold text-white mb-4">
-              {user ? 'Your Schedules' : 'Scheduled Webhooks (Login Required)'}
+              {user ? 'Your Schedules' : 'Login for Scheduling'}
             </h2>
             {user ? (
               <ScheduleList refresh={refresh} />
             ) : (
-              <div className="text-center text-gray-400">
-                Login to view and manage your scheduled webhooks
+              <div className="text-center">
+                <p className="text-gray-400 mb-4">Login with Discord to schedule webhooks</p>
+                <Login />
               </div>
             )}
           </div>
