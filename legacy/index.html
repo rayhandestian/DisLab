@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Webhook Messenger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #embed-tabs-nav::-webkit-scrollbar { height: 4px; }
+        #embed-tabs-nav::-webkit-scrollbar-track { background: #2f3136; }
+        #embed-tabs-nav::-webkit-scrollbar-thumb { background: #5865f2; border-radius: 2px; }
+        #preview-container .prose { color: #dcddde; }
+        #preview-container .prose a { color: #7289da; text-decoration: none; }
+        #preview-container .prose a:hover { text-decoration: underline; }
+        #preview-container .prose strong { color: #ffffff; }
+        #preview-container .prose code { background-color: #2f3136; padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.875em; }
+        #preview-container .prose pre { background-color: #202225; padding: 0.5em; border-radius: 4px; overflow-x: auto; }
+        #preview-container .prose pre code { background-color: transparent; padding: 0; }
+        #preview-container .prose blockquote { border-left: 4px solid #4f545c; padding-left: 1em; margin-left: 0; color: #b9bbbe; }
+        
+        .section-toggle .chevron {
+            transition: transform 0.2s ease-in-out;
+        }
+        .section-toggle.open .chevron {
+            transform: rotate(180deg);
+        }
+        .section-content {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+        }
+        .section-content.open {
+            max-height: 5000px; /* Arbitrary large value */
+            opacity: 1;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #a0aec0;
+            margin-bottom: 0.5rem;
+        }
+         .form-hint {
+            font-size: 0.75rem;
+            color: #718096;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+
+    <div class="w-full flex flex-col lg:flex-row gap-8">
+        <!-- Left Side: Form -->
+        <div class="lg:w-3/5 w-full">
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl shadow-lg p-6 sm:p-8 fade-in">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl sm:text-4xl font-bold text-indigo-400">Discord Webhook Sender</h1>
+                    <p class="text-gray-400 mt-2">A comprehensive tool to build and send messages via webhooks.</p>
+                </div>
+
+                <form id="messageForm" class="space-y-4">
+                    <!-- Webhook URL Input -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <label for="webhookUrl" class="form-label">Webhook URL</label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="password" id="webhookUrl" placeholder="Enter your Discord webhook URL" class="flex-grow bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3 transition duration-150">
+                            <button type="button" id="clearWebhook" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150 shadow-md">Clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Sections Wrapper -->
+                    <div class="space-y-2">
+                        <!-- Profile Section -->
+                        <div class="border-b border-gray-700 py-2">
+                            <button type="button" class="w-full flex justify-between items-center text-left section-toggle open">
+                                <h2 class="section-title">Profile</h2>
+                                <svg class="w-5 h-5 text-gray-400 chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                            <div class="section-content mt-4 open">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="username" class="form-label">Username (Optional)</label>
+                                        <input type="text" id="username" placeholder="Custom Bot Name" maxlength="80" class="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3 transition duration-150">
+                                        <p class="form-hint">Max 80 characters.</p>
+                                    </div>
+                                    <div>
+                                        <label for="avatarUrl" class="form-label">Avatar URL (Optional)</label>
+                                        <input type="url" id="avatarUrl" placeholder="https://i.imgur.com/..." class="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3 transition duration-150">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Content Section -->
+                         <div class="border-b border-gray-700 py-2">
+                            <button type="button" class="w-full flex justify-between items-center text-left section-toggle open">
+                                <h2 class="section-title">Content</h2>
+                                <svg class="w-5 h-5 text-gray-400 chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                            <div class="section-content mt-4 open">
+                                <label for="message" class="form-label">Message</label>
+                                <textarea id="message" rows="4" placeholder="Type your message here..." maxlength="2000" class="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3 transition duration-150"></textarea>
+                                <p class="form-hint">Max 2000 characters. Supports Markdown.</p>
+                            </div>
+                        </div>
+
+                        <!-- Optional Settings Section -->
+                         <div class="border-b border-gray-700 py-2">
+                            <button type="button" class="w-full flex justify-between items-center text-left section-toggle">
+                                <h2 class="section-title">Optional Settings</h2>
+                                <svg class="w-5 h-5 text-gray-400 chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                            <div class="section-content mt-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div>
+                                        <label for="threadName" class="form-label">Forum Thread Name</label>
+                                        <input type="text" id="threadName" placeholder="New Thread Title" maxlength="100" class="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3 transition duration-150">
+                                         <p class="form-hint">Max 100 characters.</p>
+                                    </div>
+                                     <div>
+                                        <label for="file-upload" class="form-label">Attach Files</label>
+                                        <input type="file" id="file-upload" multiple class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+                                        <div id="file-list" class="form-hint">Max total size: 25 MB.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Embed Builder Section -->
+                         <div class="border-b border-gray-700 py-2">
+                            <button type="button" class="w-full flex justify-between items-center text-left section-toggle open">
+                                <h2 class="section-title">Embeds</h2>
+                                <svg class="w-5 h-5 text-gray-400 chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                            <div class="section-content mt-4 open">
+                                <div class="flex items-center gap-2 mb-3 border-b border-gray-700 pb-2">
+                                    <div id="embed-tabs-nav" class="flex-grow flex items-center gap-1 overflow-x-auto pb-1"></div>
+                                    <button type="button" id="add-embed-btn" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md transition duration-150 shadow-md whitespace-nowrap">+ Add Embed</button>
+                                </div>
+                                <div id="embed-editor-container" class="space-y-4">
+                                     <!-- Embed fields will go here -->
+                                     <div>
+                                        <h3 class="text-lg font-semibold text-gray-300">Author</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                                            <div>
+                                                <label for="embed-author" class="form-label">Author Name</label>
+                                                <input type="text" id="embed-author" placeholder="e.g., Jane Doe" maxlength="256" class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                                <p class="form-hint">Max 256 chars.</p>
+                                            </div>
+                                            <div>
+                                                <label for="embed-author-url" class="form-label">Author URL</label>
+                                                <input type="url" id="embed-author-url" placeholder="https://..." class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                            </div>
+                                            <div>
+                                                <label for="embed-author-icon" class="form-label">Author Icon URL</label>
+                                                <input type="url" id="embed-author-icon" placeholder="https://..." class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="pt-2">
+                                        <h3 class="text-lg font-semibold text-gray-300">Body</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                            <div>
+                                                <label for="embed-title" class="form-label">Title</label>
+                                                <input type="text" id="embed-title" placeholder="e.g., Weekly Report" maxlength="256" class="bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500 w-full">
+                                                <p class="form-hint">Max 256 chars.</p>
+                                            </div>
+                                             <div>
+                                                <label for="embed-url" class="form-label">Title URL</label>
+                                                <input type="url" id="embed-url" placeholder="https://..." class="bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500 w-full">
+                                            </div>
+                                            <div class="md:col-span-2">
+                                                <label for="embed-description" class="form-label">Description</label>
+                                                <textarea id="embed-description" rows="5" placeholder="Supports Markdown..." maxlength="4096" class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"></textarea>
+                                                <p class="form-hint">Max 4096 chars.</p>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <label class="form-label mb-0">Color</label>
+                                                <input type="color" id="embed-color-picker" value="#5865F2" class="p-1 h-10 w-10 block bg-gray-700 border border-gray-600 cursor-pointer rounded-lg">
+                                                <input type="text" id="embed-color" value="#5865F2" class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                     <div class="pt-2">
+                                        <h3 class="text-lg font-semibold text-gray-300">Images</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                            <div>
+                                                <label for="embed-image" class="form-label">Image URL</label>
+                                                <input type="url" id="embed-image" placeholder="https://..." class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                            </div>
+                                            <div>
+                                                <label for="embed-thumbnail" class="form-label">Thumbnail URL</label>
+                                                <input type="url" id="embed-thumbnail" placeholder="https://..." class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                     <div class="pt-2">
+                                         <h3 class="text-lg font-semibold text-gray-300">Footer</h3>
+                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                             <div>
+                                                 <label for="embed-footer" class="form-label">Footer Text</label>
+                                                 <input type="text" id="embed-footer" placeholder="e.g., Status: OK" maxlength="2048" class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                                 <p class="form-hint">Max 2048 chars.</p>
+                                             </div>
+                                             <div>
+                                                 <label for="embed-footer-icon" class="form-label">Footer Icon URL</label>
+                                                 <input type="url" id="embed-footer-icon" placeholder="https://..." class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500">
+                                             </div>
+                                             <div class="md:col-span-2">
+                                                 <div class="flex items-center mb-2">
+                                                     <input type="checkbox" id="embed-timestamp-enabled" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                                     <label for="embed-timestamp-enabled" class="ml-2 text-sm text-gray-300">Enable Custom Timestamp</label>
+                                                </div>
+                                                <div id="timestamp-input-wrapper" class="hidden">
+                                                     <label for="embed-timestamp-input" class="form-label">Timestamp</label>
+                                                     <input type="datetime-local" id="embed-timestamp-input" class="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500 text-gray-300">
+                                                </div>
+                                             </div>
+                                         </div>
+                                     </div>
+
+                                    <div class="pt-2">
+                                        <h3 class="text-lg font-semibold text-gray-300">Fields</h3>
+                                         <div id="embed-fields-container" class="space-y-3 mt-2"></div>
+                                         <button type="button" id="add-field-btn" class="mt-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md">+ Add Field</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Flags and Message Link Section -->
+                         <div class="py-2">
+                             <button type="button" class="w-full flex justify-between items-center text-left section-toggle">
+                                <h2 class="section-title">Advanced</h2>
+                                <svg class="w-5 h-5 text-gray-400 chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                             <div class="section-content mt-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-300 mb-2">Flags</h3>
+                                         <div class="flex items-center gap-2 mb-2">
+                                             <input type="checkbox" id="flag-suppress-embeds" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                             <label for="flag-suppress-embeds" class="text-sm text-gray-300">Suppress Embeds</label>
+                                        </div>
+                                         <div class="flex items-center gap-2">
+                                             <input type="checkbox" id="flag-suppress-notifications" class="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-600 focus:ring-indigo-500">
+                                             <label for="flag-suppress-notifications" class="text-sm text-gray-300">Suppress Notifications</label>
+                                        </div>
+                                    </div>
+                                     <div>
+                                         <h3 class="text-lg font-semibold text-gray-300 mb-2">Message Link</h3>
+                                        <p class="form-hint mb-2">Editing/loading messages requires bot functionality not available to webhooks.</p>
+                                         <div class="flex gap-2">
+                                             <input type="url" id="message-link" placeholder="Discord message URL (feature disabled)" class="flex-grow bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500" disabled>
+                                             <button type="button" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg cursor-not-allowed" disabled>Load</button>
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-700">
+                         <button id="testWebhook" type="button" class="w-full sm-w-auto flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-6 rounded-lg transition duration-150 shadow-md">Test</button>
+                        <button type="submit" id="sendMessage" class="w-full sm:w-auto flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150 shadow-md">Send Message</button>
+                    </div>
+                </form>
+                
+                <div id="status-message" class="mt-6 text-center text-sm p-3 rounded-lg hidden"></div>
+            </div>
+        </div>
+
+        <!-- Right Side: Preview -->
+        <div class="lg:w-2/5 w-full">
+            <div class="bg-gray-800 border-gray-700 rounded-2xl shadow-lg p-6 sm:p-8 fade-in sticky top-8">
+                <h2 class="text-2xl font-bold text-gray-300 mb-4">Live Preview</h2>
+                <div id="preview-container" class="bg-[#36393F] p-4 rounded-lg min-h-[200px] text-white font-sans text-base leading-relaxed">
+                    <div class="flex items-start">
+                        <img id="preview-avatar" src="https://cdn.discordapp.com/embed/avatars/0.png" class="w-10 h-10 rounded-full mr-4" alt="Avatar">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-baseline">
+                                <span id="preview-username" class="font-semibold text-white mr-2">Bot</span>
+                                <span id="preview-timestamp" class="text-gray-400 text-xs">Today at 12:00 PM</span>
+                            </div>
+                            <div id="preview-message-content" class="text-gray-200 whitespace-pre-wrap prose"></div>
+                            <div id="preview-embeds-container" class="space-y-2 mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Main elements
+            const webhookUrlInput = document.getElementById('webhookUrl');
+            const messageForm = document.getElementById('messageForm');
+            const sendMessageBtn = document.getElementById('sendMessage');
+            const testWebhookBtn = document.getElementById('testWebhook');
+            const statusMessage = document.getElementById('status-message');
+            const fileUpload = document.getElementById('file-upload');
+            const fileList = document.getElementById('file-list');
+            const timestampEnabledCheckbox = document.getElementById('embed-timestamp-enabled');
+            const timestampInputWrapper = document.getElementById('timestamp-input-wrapper');
+            const timestampInput = document.getElementById('embed-timestamp-input');
+
+            // Multi-Embed elements
+            const embedTabsNav = document.getElementById('embed-tabs-nav');
+            const addEmbedBtn = document.getElementById('add-embed-btn');
+
+            // Preview elements
+            const previewAvatar = document.getElementById('preview-avatar');
+            const previewUsername = document.getElementById('preview-username');
+            const previewTimestamp = document.getElementById('preview-timestamp');
+            const previewMessageContent = document.getElementById('preview-message-content');
+            const previewEmbedsContainer = document.getElementById('preview-embeds-container');
+            
+            let embedsData = [{}];
+            let activeEmbedIndex = 0;
+            let currentFiles = [];
+
+            // --- UTILITY FUNCTIONS ---
+            const showStatus = (message, isError = false) => {
+                statusMessage.textContent = message;
+                statusMessage.className = `mt-6 text-center text-sm p-3 rounded-lg ${isError ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`;
+                statusMessage.classList.remove('hidden');
+                setTimeout(() => statusMessage.classList.add('hidden'), 5000);
+            };
+
+            const toLocalISOString = (date) => {
+                const tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
+                const localISOTime = (new Date(date - tzoffset)).toISOString().slice(0, -1);
+                return localISOTime.substring(0, 16);
+            };
+
+            // --- PREVIEW LOGIC ---
+            const updatePreview = () => {
+                saveCurrentEmbedData();
+                
+                const username = document.getElementById('username').value.trim() || 'Bot';
+                const avatarUrl = document.getElementById('avatarUrl').value.trim() || 'https://cdn.discordapp.com/embed/avatars/0.png';
+                previewUsername.textContent = username;
+                previewAvatar.src = avatarUrl;
+                previewAvatar.onerror = () => { previewAvatar.src = 'https://cdn.discordapp.com/embed/avatars/0.png'; };
+
+                previewMessageContent.innerHTML = marked.parse(document.getElementById('message').value || '', { breaks: true });
+                
+                let now = new Date();
+                previewTimestamp.textContent = now.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }).replace(',',' at');
+
+
+                previewEmbedsContainer.innerHTML = '';
+                embedsData.forEach(embed => {
+                    if (!embed.authorName && !embed.title && !embed.description && !(embed.fields && embed.fields.some(f=>f.name||f.value)) && !embed.imageUrl && !embed.thumbnailUrl && !embed.footerText && !embed.timestampValue) {
+                        return;
+                    }
+
+                    const embedWrapper = document.createElement('div');
+                    embedWrapper.className = 'flex';
+                    
+                    let fieldsHTML = '';
+                    if (embed.fields && embed.fields.length > 0) {
+                        fieldsHTML += '<div class="grid gap-y-2 mt-2">';
+                        let inlineGroup = [];
+                        
+                        const renderInlineGroup = () => {
+                            if(inlineGroup.length > 0) {
+                                fieldsHTML += `<div class="grid md:grid-cols-${inlineGroup.length} gap-4">${inlineGroup.join('')}</div>`;
+                                inlineGroup = [];
+                            }
+                        };
+                        
+                        embed.fields.forEach(field => {
+                            if (!field.name && !field.value) return;
+                            const fieldContent = `
+                                <div class="min-w-0">
+                                    <div class="font-bold text-sm text-white break-words">${marked.parseInline(field.name || '')}</div>
+                                    <div class="text-sm text-gray-300 whitespace-pre-wrap break-words prose">${marked.parse(field.value || '', { breaks: true })}</div>
+                                </div>`;
+
+                            if(field.inline) {
+                                inlineGroup.push(fieldContent);
+                                 if (inlineGroup.length === 3) {
+                                    renderInlineGroup();
+                                }
+                            } else {
+                                renderInlineGroup();
+                                fieldsHTML += fieldContent;
+                            }
+                        });
+                        renderInlineGroup();
+                        fieldsHTML += '</div>';
+                    }
+                    
+                    const authorHTML = embed.authorName ? `<div class="flex items-center">
+                        ${embed.authorIconUrl ? `<img src="${embed.authorIconUrl}" class="w-6 h-6 rounded-full mr-2" alt="Author Icon">` : ''}
+                        <span class="text-sm font-semibold text-white break-words">${embed.authorUrl ? `<a href="${embed.authorUrl}" target="_blank" class="text-white hover:underline">${embed.authorName}</a>` : embed.authorName}</span>
+                    </div>` : '';
+                    
+                    let footerTimestamp = '';
+                    if(embed.timestampValue) {
+                        try {
+                           const d = new Date(embed.timestampValue);
+                           footerTimestamp = d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }).replace(',',' at');
+                        } catch(e) { /* use default */}
+                    }
+
+                    const footerHTML = embed.footerText ? `<div class="flex items-center text-xs text-gray-400 mt-2">
+                        ${embed.footerIconUrl ? `<img src="${embed.footerIconUrl}" class="w-4 h-4 rounded-full mr-1.5" alt="Footer Icon">` : ''}
+                        <span class="break-words">${embed.footerText}${footerTimestamp ? ` • ${footerTimestamp}` : ''}</span>
+                    </div>` : (footerTimestamp ? `<div class="text-xs text-gray-400 mt-2">${footerTimestamp}</div>` : '');
+
+                    embedWrapper.innerHTML = `
+                        <div class="w-1 rounded-l-md" style="background-color: ${embed.color || '#5865F2'};"></div>
+                        <div class="bg-[#2F3136] rounded-r-md p-4 relative grid gap-2 flex-1 min-w-0">
+                            ${authorHTML}
+                            ${embed.title ? `<div class="font-bold text-white break-words">${embed.url ? `<a href="${embed.url}" target="_blank" class="text-blue-400 hover:underline">${embed.title}</a>` : embed.title}</div>` : ''}
+                            ${embed.description ? `<div class="text-sm text-gray-300 whitespace-pre-wrap break-words prose">${marked.parse(embed.description || '', { breaks: true })}</div>` : ''}
+                            ${fieldsHTML}
+                            ${embed.imageUrl ? `<img src="${embed.imageUrl}" class="rounded-md mt-2 max-w-full h-auto" alt="Embed Image">` : ''}
+                            ${embed.thumbnailUrl ? `<img src="${embed.thumbnailUrl}" class="absolute top-4 right-4 w-16 h-16 rounded-md object-cover" alt="Embed Thumbnail">` : ''}
+                            ${footerHTML}
+                        </div>`;
+                    previewEmbedsContainer.appendChild(embedWrapper);
+                });
+            };
+            
+            // --- MULTI-EMBED MANAGEMENT ---
+            const getEmbedField = (id) => document.getElementById(id);
+
+            const saveCurrentEmbedData = () => {
+                if (!embedsData[activeEmbedIndex]) return;
+                embedsData[activeEmbedIndex] = {
+                    authorName: getEmbedField('embed-author').value.trim(),
+                    authorUrl: getEmbedField('embed-author-url').value.trim(),
+                    authorIconUrl: getEmbedField('embed-author-icon').value.trim(),
+                    title: getEmbedField('embed-title').value.trim(),
+                    url: getEmbedField('embed-url').value.trim(),
+                    description: getEmbedField('embed-description').value.trim(),
+                    color: getEmbedField('embed-color').value.trim() || '#5865F2',
+                    imageUrl: getEmbedField('embed-image').value.trim(),
+                    thumbnailUrl: getEmbedField('embed-thumbnail').value.trim(),
+                    footerText: getEmbedField('embed-footer').value.trim(),
+                    footerIconUrl: getEmbedField('embed-footer-icon').value.trim(),
+                    timestampValue: timestampEnabledCheckbox.checked ? timestampInput.value : null,
+                    fields: Array.from(document.querySelectorAll('#embed-fields-container .p-3')).map(group => ({
+                        name: group.querySelector('.field-name').value.trim(),
+                        value: group.querySelector('.field-value').value.trim(),
+                        inline: group.querySelector('.field-inline').checked,
+                    }))
+                };
+            };
+            
+            const loadEmbedData = (index) => {
+                const data = embedsData[index] || {};
+                getEmbedField('embed-author').value = data.authorName || '';
+                getEmbedField('embed-author-url').value = data.authorUrl || '';
+                getEmbedField('embed-author-icon').value = data.authorIconUrl || '';
+                getEmbedField('embed-title').value = data.title || '';
+                getEmbedField('embed-url').value = data.url || '';
+                getEmbedField('embed-description').value = data.description || '';
+                getEmbedField('embed-color').value = data.color || '#5865F2';
+                getEmbedField('embed-color-picker').value = data.color || '#5865F2';
+                getEmbedField('embed-image').value = data.imageUrl || '';
+                getEmbedField('embed-thumbnail').value = data.thumbnailUrl || '';
+                getEmbedField('embed-footer').value = data.footerText || '';
+                getEmbedField('embed-footer-icon').value = data.footerIconUrl || '';
+                
+                timestampEnabledCheckbox.checked = !!data.timestampValue;
+                if(data.timestampValue) {
+                    timestampInputWrapper.classList.remove('hidden');
+                    timestampInput.value = data.timestampValue;
+                } else {
+                    timestampInputWrapper.classList.add('hidden');
+                }
+                
+                document.getElementById('embed-fields-container').innerHTML = '';
+                if (data.fields) data.fields.forEach(field => addField(field));
+            };
+
+            const renderEmbedTabs = () => {
+                embedTabsNav.innerHTML = '';
+                embedsData.forEach((_, index) => {
+                     const tabBtn = document.createElement('button');
+                     tabBtn.type = 'button';
+                     tabBtn.className = `text-sm font-semibold py-1 px-3 rounded-md transition duration-150 whitespace-nowrap ${index === activeEmbedIndex ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-300'}`;
+                     tabBtn.textContent = `Embed ${index + 1}`;
+                     if (embedsData.length > 1) {
+                         const removeBtn = document.createElement('span');
+                         removeBtn.textContent = ' ✕';
+                         removeBtn.className = 'ml-1 text-indigo-200 hover:text-white';
+                         removeBtn.onclick = (e) => { e.stopPropagation(); removeEmbed(index); };
+                         tabBtn.appendChild(removeBtn);
+                    }
+                    tabBtn.onclick = () => {
+                        saveCurrentEmbedData();
+                        activeEmbedIndex = index;
+                        loadEmbedData(index);
+                        renderEmbedTabs();
+                    };
+                    embedTabsNav.appendChild(tabBtn);
+                });
+            };
+
+            const addNewEmbed = () => {
+                if (embedsData.length >= 10) { showStatus("You can have a maximum of 10 embeds.", true); return; }
+                saveCurrentEmbedData();
+                embedsData.push({});
+                activeEmbedIndex = embedsData.length - 1;
+                loadEmbedData(activeEmbedIndex);
+                renderEmbedTabs();
+                updatePreview();
+            };
+
+            const removeEmbed = (index) => {
+                if (embedsData.length <= 1) return;
+                embedsData.splice(index, 1);
+                activeEmbedIndex = Math.max(0, activeEmbedIndex - 1);
+                loadEmbedData(activeEmbedIndex);
+                renderEmbedTabs();
+                updatePreview();
+            };
+
+            addEmbedBtn.addEventListener('click', addNewEmbed);
+            renderEmbedTabs();
+
+            // --- DYNAMIC FIELDS LOGIC ---
+            const addField = (data = {}) => {
+                const newFieldHTML = `
+                    <div class="p-3 bg-gray-900/50 rounded-lg border border-gray-700 fade-in">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
+                            <div>
+                                <label class="text-xs font-medium text-gray-400">Field Name</label>
+                                <input type="text" placeholder="Max 256 chars" maxlength="256" class="field-name w-full mt-1 bg-gray-700 border border-gray-600 text-white rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500" value="${data.name || ''}">
+                            </div>
+                            <div class="flex items-end pb-1">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" class="field-inline h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-600 focus:ring-indigo-500" ${data.inline ? 'checked' : ''}>
+                                    <label class="text-sm text-gray-300">Inline</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <label class="text-xs font-medium text-gray-400">Field Value</label>
+                            <textarea placeholder="Max 1024 chars" maxlength="1024" class="field-value w-full mt-1 bg-gray-700 border border-gray-600 text-white rounded-md p-2 text-sm" rows="2">${data.value || ''}</textarea>
+                        </div>
+                        <button type="button" class="remove-field-btn mt-2 text-xs bg-red-600/80 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-md transition">Remove</button>
+                    </div>
+                `;
+                document.getElementById('embed-fields-container').insertAdjacentHTML('beforeend', newFieldHTML);
+            };
+
+            document.getElementById('add-field-btn').addEventListener('click', () => { addField(); updatePreview(); });
+            document.getElementById('embed-fields-container').addEventListener('click', e => {
+                if (e.target && e.target.classList.contains('remove-field-btn')) {
+                    e.target.closest('.p-3').remove();
+                    updatePreview();
+                }
+            });
+
+            // --- FILE HANDLING ---
+            fileUpload.addEventListener('change', (e) => {
+                currentFiles = Array.from(e.target.files);
+                let totalSize = currentFiles.reduce((acc, file) => acc + file.size, 0);
+                const fileInfo = document.getElementById('file-list');
+                fileInfo.textContent = `${currentFiles.length} file(s) selected. Total size: ${(totalSize / 1024 / 1024).toFixed(2)} MB.`;
+                if (totalSize > 25 * 1024 * 1024) {
+                    fileInfo.classList.add('text-red-400');
+                    showStatus('Total file size exceeds 25 MB!', true);
+                } else {
+                    fileInfo.classList.remove('text-red-400');
+                }
+            });
+
+            // --- COLLAPSIBLE SECTIONS ---
+            document.querySelectorAll('.section-toggle').forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    button.classList.toggle('open');
+                    content.classList.toggle('open');
+                });
+            });
+
+            // --- TIMESTAMP ---
+            timestampEnabledCheckbox.addEventListener('change', () => {
+                if (timestampEnabledCheckbox.checked) {
+                    timestampInputWrapper.classList.remove('hidden');
+                    if (!timestampInput.value) {
+                       timestampInput.value = toLocalISOString(new Date());
+                    }
+                } else {
+                    timestampInputWrapper.classList.add('hidden');
+                }
+                updatePreview();
+            });
+
+            // --- INITIALIZATION & MAIN EVENT LISTENERS ---
+            document.querySelectorAll('#messageForm input, #messageForm textarea').forEach(input => input.addEventListener('input', updatePreview));
+            document.getElementById('embed-fields-container').addEventListener('input', updatePreview);
+            updatePreview();
+
+            const savedUrl = localStorage.getItem('discordWebhookUrl');
+            if (savedUrl) webhookUrlInput.value = savedUrl;
+
+            document.getElementById('clearWebhook').addEventListener('click', () => {
+                webhookUrlInput.value = '';
+                localStorage.removeItem('discordWebhookUrl');
+            });
+
+            // --- FORM SUBMISSION ---
+            const postToDiscord = async (url, body, isFormData = false) => {
+                sendMessageBtn.disabled = true;
+                sendMessageBtn.textContent = 'Sending...';
+                testWebhookBtn.disabled = true;
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: isFormData ? {} : { 'Content-Type': 'application/json' },
+                        body: isFormData ? body : JSON.stringify(body),
+                    });
+
+                    if (response.ok) {
+                        showStatus('Message sent successfully!', false);
+                    } else {
+                        const errorData = await response.json();
+                        console.error('Discord API Error:', errorData);
+                        let errorMessage = 'Something went wrong.';
+                        if (errorData.message && errorData.errors) {
+                             errorMessage = `${errorData.message}: ${JSON.stringify(errorData.errors)}`;
+                        } else if (errorData.message) {
+                             errorMessage = errorData.message;
+                        }
+                        showStatus(`Error: ${errorMessage} (Code: ${response.status})`, true);
+                    }
+                } catch (error) {
+                    console.error('Fetch Error:', error);
+                    showStatus('Failed to send message. Check the console and your network connection.', true);
+                } finally {
+                    sendMessageBtn.disabled = false;
+                    sendMessageBtn.textContent = 'Send Message';
+                    testWebhookBtn.disabled = false;
+                }
+            };
+            
+            const getValidWebhookUrl = () => {
+                const url = webhookUrlInput.value.trim();
+                if (url.startsWith('https://discord.com/api/webhooks/')) {
+                    localStorage.setItem('discordWebhookUrl', url);
+                    return url;
+                }
+                showStatus('Please enter a valid Discord webhook URL.', true);
+                return null;
+            };
+
+            testWebhookBtn.addEventListener('click', () => {
+                const webhookUrl = getValidWebhookUrl();
+                if (!webhookUrl) return;
+                const payload = {
+                    content: 'This is a test message from the Webhook Sender.',
+                    username: 'Webhook Tester',
+                    avatar_url: 'https://i.imgur.com/fKL31aD.png'
+                };
+                postToDiscord(webhookUrl, payload);
+            });
+
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const webhookUrl = getValidWebhookUrl();
+                if (!webhookUrl) return;
+
+                saveCurrentEmbedData();
+                let payload = {};
+                
+                payload.username = document.getElementById('username').value.trim() || undefined;
+                payload.avatar_url = document.getElementById('avatarUrl').value.trim() || undefined;
+                payload.content = document.getElementById('message').value.trim() || undefined;
+                payload.thread_name = document.getElementById('threadName').value.trim() || undefined;
+
+                let flags = 0;
+                if (document.getElementById('flag-suppress-embeds').checked) flags |= (1 << 2);
+                if (document.getElementById('flag-suppress-notifications').checked) flags |= (1 << 12);
+                if (flags > 0) payload.flags = flags;
+                
+                const finalEmbeds = embedsData.map(data => {
+                    const embed = {};
+                    if(data.authorName) embed.author = { name: data.authorName, url: data.authorUrl, icon_url: data.authorIconUrl };
+                    if(data.title) embed.title = data.title;
+                    if(data.url) embed.url = data.url;
+                    if(data.description) embed.description = data.description;
+                    if(data.color) embed.color = parseInt(data.color.substring(1), 16);
+                    if(data.imageUrl) embed.image = { url: data.imageUrl };
+                    if(data.thumbnailUrl) embed.thumbnail = { url: data.thumbnailUrl };
+                    if(data.footerText) embed.footer = { text: data.footerText, icon_url: data.footerIconUrl };
+                    if(data.timestampValue) embed.timestamp = new Date(data.timestampValue).toISOString();
+                    if (data.fields && data.fields.length > 0) {
+                        const validFields = data.fields.filter(f => f.name && f.value);
+                        if(validFields.length > 0) embed.fields = validFields;
+                    }
+                    return embed;
+                }).filter(embed => {
+                    return embed.title || embed.description || embed.author || embed.footer || embed.image || embed.thumbnail || (embed.fields && embed.fields.length > 0) || embed.timestamp;
+                });
+
+                if (finalEmbeds.length > 0) payload.embeds = finalEmbeds;
+
+                if (!payload.content && (!payload.embeds || payload.embeds.length === 0) && currentFiles.length === 0) {
+                    showStatus('Cannot send an empty message.', true); return;
+                }
+
+                if (currentFiles.length > 0) {
+                    let totalSize = currentFiles.reduce((acc, file) => acc + file.size, 0);
+                    if (totalSize > 25 * 1024 * 1024) {
+                        showStatus('Total file size exceeds 25 MB!', true); return;
+                    }
+                    const formData = new FormData();
+                    formData.append('payload_json', JSON.stringify(payload));
+                    currentFiles.forEach((file, i) => formData.append(`files[${i}]`, file));
+                    await postToDiscord(`${webhookUrl}?wait=true`, formData, true);
+                } else {
+                    await postToDiscord(`${webhookUrl}?wait=true`, payload);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
