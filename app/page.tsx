@@ -1,6 +1,20 @@
+'use client'
+
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function Home() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code) {
+      router.push(`/auth/callback?code=${code}`)
+    }
+  }, [searchParams, router])
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-16">
