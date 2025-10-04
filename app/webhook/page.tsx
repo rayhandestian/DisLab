@@ -9,19 +9,21 @@ export default function WebhookPage() {
   const [message, setMessage] = useState('')
   const [threadName, setThreadName] = useState('')
   const [files, setFiles] = useState<File[]>([])
-  const [embeds, setEmbeds] = useState([{}])
-  const [activeEmbedIndex, setActiveEmbedIndex] = useState(0)
   const [statusMessage, setStatusMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isTestMode, setIsTestMode] = useState(false)
 
   // Embed data structure
   interface EmbedData {
     title?: string
     description?: string
-    color?: number
+    color?: string
     author?: { name: string; url?: string; icon_url?: string }
     fields?: Array<{ name: string; value: string; inline?: boolean }>
+    imageUrl?: string
+    thumbnailUrl?: string
+    footerText?: string
+    footerIconUrl?: string
+    timestampValue?: string
   }
 
   interface WebhookPayload {
@@ -33,11 +35,19 @@ export default function WebhookPage() {
     flags?: number
   }
 
-  const [embedData, setEmbedData] = useState<EmbedData[]>([{}])
+  const [embedsData, setEmbedsData] = useState<EmbedData[]>([{}])
+  const [activeEmbedIndex, setActiveEmbedIndex] = useState(0)
 
   // Flags
   const [suppressEmbeds, setSuppressEmbeds] = useState(false)
   const [suppressNotifications, setSuppressNotifications] = useState(false)
+
+  // Timestamp
+  const [timestampEnabled, setTimestampEnabled] = useState(false)
+  const [timestampValue, setTimestampValue] = useState('')
+
+  // Fields
+  const [fields, setFields] = useState<Array<{name: string, value: string, inline: boolean}>>([])
 
   const showStatus = (message: string, isError = false) => {
     setStatusMessage(message)
@@ -55,7 +65,7 @@ export default function WebhookPage() {
       return
     }
 
-    if (!isTest && !message && embedData.length === 0) {
+    if (!isTest && !message && embedsData.length === 0) {
       showStatus('Please enter a message or add an embed', true)
       return
     }
@@ -75,7 +85,7 @@ export default function WebhookPage() {
       }
 
       // Add embeds if any
-      const validEmbeds = embedData.filter(embed =>
+      const validEmbeds = embedsData.filter((embed: EmbedData) =>
         embed.title || embed.description || embed.author?.name
       )
       if (validEmbeds.length > 0) {
