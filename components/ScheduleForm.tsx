@@ -63,7 +63,48 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
     return tier === 'paid' ? 100 : 3
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const sendWebhook = async () => {
+    const payload = {
+      content: data.message,
+      username: data.username || undefined,
+      avatar_url: data.avatarUrl || undefined
+    }
+
+    const response = await fetch(data.webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (response.ok) {
+      toast.success('Webhook sent successfully!')
+    } else {
+      toast.error('Failed to send webhook')
+    }
+  }
+
+  const handleSendNow = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await sendWebhook()
+      setData({
+        name: '',
+        webhookUrl: '',
+        message: '',
+        username: '',
+        avatarUrl: '',
+        scheduleTime: ''
+      })
+    } catch (error) {
+      console.error('Error sending webhook:', error)
+      toast.error('Error sending webhook')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !profile) return
 
@@ -113,18 +154,7 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="form-label">Schedule Name</label>
-        <input
-          type="text"
-          value={data.name}
-          onChange={(e) => setData({ ...data, name: e.target.value })}
-          className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3"
-          required
-        />
-      </div>
-
+    <div className="space-y-4">
       <div>
         <label className="form-label">Webhook URL</label>
         <input
@@ -168,24 +198,48 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       </div>
 
-      <div>
-        <label className="form-label">Schedule Time</label>
-        <input
-          type="datetime-local"
-          value={data.scheduleTime}
-          onChange={(e) => setData({ ...data, scheduleTime: e.target.value })}
-          className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3"
-          required
-        />
-      </div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={handleSendNow}
+          disabled={loading || !data.webhookUrl || !data.message}
+          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
+        >
+          {loading ? 'Sending...' : 'Send Now'}
+        </button>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
-      >
-        {loading ? 'Creating...' : 'Create Schedule'}
-      </button>
-    </form>
+        {user && (
+          <>
+            <div>
+              <label className="form-label">Schedule Name</label>
+              <input
+                type="text"
+                value={data.name}
+                onChange={(e) => setData({ ...data, name: e.target.value })}
+                className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3"
+                placeholder="Schedule name"
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Schedule Time</label>
+              <input
+                type="datetime-local"
+                value={data.scheduleTime}
+                onChange={(e) => setData({ ...data, scheduleTime: e.target.value })}
+                className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3"
+              />
+            </div>
+
+            <button
+              onClick={handleSchedule}
+              disabled={loading || !data.name || !data.scheduleTime}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
+            >
+              {loading ? 'Scheduling...' : 'Schedule'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
   )
 }

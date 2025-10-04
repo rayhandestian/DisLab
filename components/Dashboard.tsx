@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import ScheduleForm from './ScheduleForm'
 import ScheduleList from './ScheduleList'
+import Login from './Login'
 
 interface Profile {
   tier: string
@@ -65,29 +66,48 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-indigo-400">DisLab</h1>
           <div className="flex items-center gap-4">
-            {profile && (
+            {user && profile && (
               <div className="text-sm text-gray-400">
                 Tier: {profile.tier} | Schedules: {scheduleCount}/{getMaxSchedules(profile.tier)}
               </div>
             )}
-            <button
-              onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
-            >
-              Logout
-            </button>
+            {user && (
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-gray-800 rounded-2xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Create New Schedule</h2>
-            <ScheduleForm onSuccess={handleScheduleCreated} />
+            <h2 className="text-xl font-semibold text-white mb-4">
+              {user ? 'Create New Schedule' : 'Send Webhook (Login for Scheduling)'}
+            </h2>
+            {user ? (
+              <ScheduleForm onSuccess={handleScheduleCreated} />
+            ) : (
+              <div className="text-center">
+                <p className="text-gray-400 mb-4">Login with Discord to create scheduled webhooks</p>
+                <Login />
+              </div>
+            )}
           </div>
 
           <div className="bg-gray-800 rounded-2xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Your Schedules</h2>
-            <ScheduleList refresh={refresh} />
+            <h2 className="text-xl font-semibold text-white mb-4">
+              {user ? 'Your Schedules' : 'Scheduled Webhooks (Login Required)'}
+            </h2>
+            {user ? (
+              <ScheduleList refresh={refresh} />
+            ) : (
+              <div className="text-center text-gray-400">
+                Login to view and manage your scheduled webhooks
+              </div>
+            )}
           </div>
         </div>
       </div>
