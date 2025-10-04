@@ -1,195 +1,77 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { marked } from 'marked'
 
-marked.use({ breaks: true })
-
-const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png'
-const DEFAULT_COLOR = '#5865F2'
-const MAX_FILES_BYTES = 25 * 1024 * 1024
-const MAX_EMBEDS = 10
-
-type SectionKey = 'profile' | 'content' | 'optional' | 'embeds' | 'advanced'
-
-type EmbedField = {
-  id: string
-  name: string
-  value: string
-  inline: boolean
-}
-
-type EmbedData = {
-  id: string
-  authorName: string
-  authorUrl: string
-  authorIconUrl: string
-  title: string
-  url: string
-  description: string
-  color: string
-  imageUrl: string
-  thumbnailUrl: string
-  footerText: string
-  footerIconUrl: string
-  timestampValue?: string
-  fields: EmbedField[]
-}
-
-const createId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-
-const createDefaultEmbed = (): EmbedData => ({
-  id: createId(),
-  authorName: '',
-  authorUrl: '',
-  authorIconUrl: '',
-  title: '',
-  url: '',
-  description: '',
-  color: DEFAULT_COLOR,
-  imageUrl: '',
-  thumbnailUrl: '',
-  footerText: '',
-  footerIconUrl: '',
-  timestampValue: undefined,
-  fields: [],
-})
-
-const isValidHexColor = (value: string) => /^#[0-9A-Fa-f]{6}$/.test(value)
-
-const toLocalISOString = (date: Date) => {
-  const tzOffset = date.getTimezoneOffset() * 60000
-  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16)
-}
-
-const formatTimestampText = (value?: string) => {
-  if (!value) return ''
-  try {
-    return new Date(value).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }).replace(',', ' at')
-  } catch {
-    return ''
-  }
-}
-
-const embedHasRenderableContent = (embed: EmbedData) => {
-  const hasFields = embed.fields.some(field => field.name.trim() || field.value.trim())
-  return Boolean(
-    embed.authorName.trim() ||
-      embed.title.trim() ||
-      embed.description.trim() ||
-      embed.footerText.trim() ||
-      embed.imageUrl.trim() ||
-      embed.thumbnailUrl.trim() ||
-      hasFields ||
-      embed.timestampValue
-  )
-}
-
-const transformEmbedForPayload = (embed: EmbedData) => {
-  const payload: Record<string, unknown> = {}
-  if (embed.authorName.trim()) {
-    payload.author = {
-      name: embed.authorName.trim(),
-      url: embed.authorUrl.trim() || undefined,
-      icon_url: embed.authorIconUrl.trim() || undefined,
-    }
-  }
-  if (embed.title.trim()) payload.title = embed.title.trim()
-  if (embed.url.trim()) payload.url = embed.url.trim()
-  if (embed.description.trim()) payload.description = embed.description.trim()
-  if (isValidHexColor(embed.color)) payload.color = parseInt(embed.color.substring(1), 16)
-  if (embed.imageUrl.trim()) payload.image = { url: embed.imageUrl.trim() }
-  if (embed.thumbnailUrl.trim()) payload.thumbnail = { url: embed.thumbnailUrl.trim() }
-  if (embed.footerText.trim()) {
-    payload.footer = {
-      text: embed.footerText.trim(),
-      icon_url: embed.footerIconUrl.trim() || undefined,
-    }
-  }
-  if (embed.timestampValue) {
-    try {
-      payload.timestamp = new Date(embed.timestampValue).toISOString()
-    } catch {
-      /* swallow invalid timestamp */
-    }
-  }
-  const validFields = embed.fields
-    .filter(field => field.name.trim() && field.value.trim())
-    .map(field => ({
-      name: field.name.trim(),
-      value: field.value.trim(),
-      inline: field.inline,
-    }))
-  if (validFields.length > 0) payload.fields = validFields
-  return payload
-}
+import {
+  DEFAULT_AVATAR,
+  DEFAULT_COLOR,
+  embedHasRenderableContent,
+  formatTimestampText,
+  isValidHexColor,
+  useWebhookBuilder,
+} from '@/hooks/useWebhookBuilder'
+import ScheduleManager from '@/components/webhook/ScheduleManager'
 
 export default function WebhookPage() {
-  const [webhookUrl, setWebhookUrl] = useState('')
-  const [username, setUsername] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState('')
-  const [message, setMessage] = useState('')
-  const [threadName, setThreadName] = useState('')
-  const [statusMessage, setStatusMessage] = useState<string | null>(null)
-  const [statusVariant, setStatusVariant] = useState<'success' | 'error'>('success')
-  const [isSending, setIsSending] = useState(false)
-  const [files, setFiles] = useState<File[]>([])
-  const [embedsData, setEmbedsData] = useState<EmbedData[]>([createDefaultEmbed()])
-  const [activeEmbedIndex, setActiveEmbedIndex] = useState(0)
-  const [suppressEmbeds, setSuppressEmbeds] = useState(false)
-  const [suppressNotifications, setSuppressNotifications] = useState(false)
-  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
-    profile: true,
-    content: true,
-    optional: false,
-    embeds: true,
-    advanced: false,
-  })
+  const builder = useWebhookBuilder()
+  const {
+    webhookUrl,
+    setWebhookUrl,
+    username,
+    setUsername,
+    avatarUrl,
+    setAvatarUrl,
+    message,
+    setMessage,
+    threadName,
+    setThreadName,
+    statusMessage,
+    statusVariant,
+    isSending,
+    files,
+    embedsData,
+    activeEmbed,
+    activeEmbedIndex,
+    setActiveEmbedIndex,
+    suppressEmbeds,
+    setSuppressEmbeds,
+    suppressNotifications,
+    setSuppressNotifications,
+    openSections,
+    toggleSection,
+    totalFileSize,
+    isFileSizeExceeded,
+    previewMessageHTML,
+    previewTimestampText,
+    handleEmbedInputChange,
+    handleAddField,
+    handleRemoveField,
+    handleFieldChange,
+    handleTimestampToggle,
+    handleTimestampChange,
+    handleAddEmbed,
+    handleRemoveEmbed,
+    handleFileUpload,
+    clearWebhook,
+    sendWebhook,
+    handleSubmit,
+  } = builder
 
-  const activeEmbed = embedsData[activeEmbedIndex] ?? embedsData[0]
+  const timestampEnabled = Boolean(activeEmbed?.timestampValue)
+  const previewUsername = username.trim() || 'Bot'
+  const previewAvatar = avatarUrl.trim() || DEFAULT_AVATAR
+  const colorPickerValue =
+    activeEmbed && isValidHexColor(activeEmbed.color) ? activeEmbed.color : DEFAULT_COLOR
 
-  const toggleSection = (section: SectionKey) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }))
-  }
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      const saved = localStorage.getItem('discordWebhookUrl')
-      if (saved) setWebhookUrl(saved)
-    } catch {
-      /* ignore storage errors */
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!statusMessage) return
-    const timer = window.setTimeout(() => setStatusMessage(null), 5000)
-    return () => window.clearTimeout(timer)
-  }, [statusMessage])
-
-  const showStatus = (messageText: string, variant: 'success' | 'error' = 'success') => {
-    setStatusVariant(variant)
-    setStatusMessage(messageText)
-  }
-
-  const totalFileSize = useMemo(() => files.reduce((acc, file) => acc + file.size, 0), [files])
-  const isFileSizeExceeded = totalFileSize > MAX_FILES_BYTES
-
-  const previewMessageHTML = useMemo(() => {
-    const trimmed = message.trim()
-    if (!trimmed) return ''
-    return marked.parse(trimmed)
-  }, [message])
-
-  const previewEmbeds = useMemo<React.ReactNode[]>(() => {
+  const previewEmbeds = useMemo<ReactNode[]>(() => {
     return embedsData
       .map(embed => {
         if (!embedHasRenderableContent(embed)) return null
 
         const colorBar = isValidHexColor(embed.color) ? embed.color : DEFAULT_COLOR
-        const fieldElements: React.ReactNode[] = []
-        let inlineBuffer: React.ReactNode[] = []
+        const fieldElements: ReactNode[] = []
+        let inlineBuffer: ReactNode[] = []
 
         const flushInline = () => {
           if (inlineBuffer.length === 0) return
@@ -307,244 +189,8 @@ export default function WebhookPage() {
           </div>
         )
       })
-      .filter(Boolean) as React.ReactNode[]
+      .filter(Boolean) as ReactNode[]
   }, [embedsData])
-
-  const updateActiveEmbed = (updater: (embed: EmbedData) => EmbedData) => {
-    setEmbedsData(prev =>
-      prev.map((embed, index) => {
-        if (index !== activeEmbedIndex) return embed
-        return updater(embed)
-      })
-    )
-  }
-
-  const handleEmbedInputChange = <K extends keyof EmbedData>(key: K, value: EmbedData[K]) => {
-    updateActiveEmbed(embed => ({
-      ...embed,
-      [key]: value,
-    }))
-  }
-
-  const handleAddField = () => {
-    if (!activeEmbed) return
-    updateActiveEmbed(embed => ({
-      ...embed,
-      fields: [
-        ...embed.fields,
-        {
-          id: createId(),
-          name: '',
-          value: '',
-          inline: false,
-        },
-      ],
-    }))
-  }
-
-  const handleRemoveField = (fieldId: string) => {
-    updateActiveEmbed(embed => ({
-      ...embed,
-      fields: embed.fields.filter(field => field.id !== fieldId),
-    }))
-  }
-
-  const handleFieldChange = (fieldId: string, updates: Partial<EmbedField>) => {
-    updateActiveEmbed(embed => ({
-      ...embed,
-      fields: embed.fields.map(field => (field.id === fieldId ? { ...field, ...updates } : field)),
-    }))
-  }
-
-  const handleTimestampToggle = (checked: boolean) => {
-    updateActiveEmbed(embed => ({
-      ...embed,
-      timestampValue: checked ? embed.timestampValue ?? toLocalISOString(new Date()) : undefined,
-    }))
-  }
-
-  const handleTimestampChange = (value: string) => {
-    updateActiveEmbed(embed => ({
-      ...embed,
-      timestampValue: value,
-    }))
-  }
-
-  const handleAddEmbed = () => {
-    if (embedsData.length >= MAX_EMBEDS) {
-      showStatus('You can have a maximum of 10 embeds.', 'error')
-      return
-    }
-    const newEmbed = createDefaultEmbed()
-    setEmbedsData(prev => [...prev, newEmbed])
-    setActiveEmbedIndex(embedsData.length)
-  }
-
-  const handleRemoveEmbed = (index: number) => {
-    if (embedsData.length <= 1) return
-    setEmbedsData(prev => {
-      const next = prev.filter((_, idx) => idx !== index)
-      const nextList = next.length > 0 ? next : [createDefaultEmbed()]
-      const nextActive =
-        activeEmbedIndex === index
-          ? Math.max(0, index - 1)
-          : activeEmbedIndex > index
-            ? activeEmbedIndex - 1
-            : activeEmbedIndex
-      setActiveEmbedIndex(Math.min(nextActive, nextList.length - 1))
-      return nextList
-    })
-  }
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files ?? [])
-    setFiles(selectedFiles)
-    const total = selectedFiles.reduce((acc, file) => acc + file.size, 0)
-    if (total > MAX_FILES_BYTES) {
-      showStatus('Total file size exceeds 25 MB!', 'error')
-    }
-  }
-
-  const clearWebhook = () => {
-    setWebhookUrl('')
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('discordWebhookUrl')
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-
-  const getValidWebhookUrl = () => {
-    const trimmed = webhookUrl.trim()
-    if (trimmed.startsWith('https://discord.com/api/webhooks/')) {
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('discordWebhookUrl', trimmed)
-        } catch {
-          /* ignore */
-        }
-      }
-      return trimmed
-    }
-    showStatus('Please enter a valid Discord webhook URL.', 'error')
-    return null
-  }
-
-  const postToDiscord = async (url: string, body: FormData | Record<string, unknown>) => {
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: body instanceof FormData ? undefined : { 'Content-Type': 'application/json' },
-        body: body instanceof FormData ? body : JSON.stringify(body),
-      })
-
-      if (response.ok) {
-        showStatus('Message sent successfully!', 'success')
-        return true
-      }
-
-      const errorData = await response.json().catch(() => undefined)
-      const messageText =
-        errorData?.message && errorData?.errors
-          ? `${errorData.message}: ${JSON.stringify(errorData.errors)}`
-          : errorData?.message ?? 'Something went wrong.'
-      showStatus(`Error: ${messageText} (Code: ${response.status})`, 'error')
-      console.error('Discord API Error:', errorData)
-      return false
-    } catch (error) {
-      console.error('Fetch Error:', error)
-      showStatus('Failed to send message. Check the console and your network connection.', 'error')
-      return false
-    }
-  }
-
-  const sendWebhook = async (isTest: boolean) => {
-    if (isSending) return
-    const validUrl = getValidWebhookUrl()
-    if (!validUrl) return
-
-    if (!isTest) {
-      const hasContent =
-        message.trim().length > 0 || files.length > 0 || embedsData.some(embed => embedHasRenderableContent(embed))
-      if (!hasContent) {
-        showStatus('Cannot send an empty message.', 'error')
-        return
-      }
-      if (isFileSizeExceeded) {
-        showStatus('Total file size exceeds 25 MB!', 'error')
-        return
-      }
-    }
-
-    setIsSending(true)
-    try {
-      if (isTest) {
-        const payload = {
-          content: 'This is a test message from the Webhook Sender.',
-          username: 'Webhook Tester',
-          avatar_url: 'https://i.imgur.com/fKL31aD.png',
-        }
-        await postToDiscord(validUrl, payload)
-        return
-      }
-
-      const payload: Record<string, unknown> = {}
-      if (username.trim()) payload.username = username.trim()
-      if (avatarUrl.trim()) payload.avatar_url = avatarUrl.trim()
-      if (message.trim()) payload.content = message.trim()
-      if (threadName.trim()) payload.thread_name = threadName.trim()
-
-      let flags = 0
-      if (suppressEmbeds) flags |= 1 << 2
-      if (suppressNotifications) flags |= 1 << 12
-      if (flags > 0) payload.flags = flags
-
-      const embedsPayload = embedsData
-        .filter(embedHasRenderableContent)
-        .map(transformEmbedForPayload)
-        .filter(embed => Object.keys(embed).length > 0)
-
-      if (embedsPayload.length > 0) payload.embeds = embedsPayload
-
-      if (!payload.content && (!payload.embeds || (payload.embeds as unknown[]).length === 0) && files.length === 0) {
-        showStatus('Cannot send an empty message.', 'error')
-        return
-      }
-
-      if (files.length > 0) {
-        if (isFileSizeExceeded) {
-          showStatus('Total file size exceeds 25 MB!', 'error')
-          return
-        }
-        const formData = new FormData()
-        formData.append('payload_json', JSON.stringify(payload))
-        files.forEach((file, index) => {
-          formData.append(`files[${index}]`, file)
-        })
-        await postToDiscord(`${validUrl}?wait=true`, formData)
-      } else {
-        await postToDiscord(`${validUrl}?wait=true`, payload)
-      }
-    } finally {
-      setIsSending(false)
-    }
-  }
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    await sendWebhook(false)
-  }
-
-  const timestampEnabled = Boolean(activeEmbed?.timestampValue)
-  const previewUsername = username.trim() || 'Bot'
-  const previewAvatar = avatarUrl.trim() || DEFAULT_AVATAR
-  const previewTimestampText = useMemo(
-    () => new Date().toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }).replace(',', ' at'),
-    [message, username, avatarUrl, embedsData, files, threadName]
-  )
-  const colorPickerValue = isValidHexColor(activeEmbed?.color ?? '') ? activeEmbed!.color : DEFAULT_COLOR
 
   return (
     <div className="min-h-screen bg-gray-900 text-white py-8 px-4 sm:px-6 lg:px-8">
@@ -580,7 +226,9 @@ export default function WebhookPage() {
               <div className="border-b border-gray-700 py-2">
                 <button
                   type="button"
-                  className={`w-full flex justify-between items-center text-left section-toggle ${openSections.profile ? 'open' : ''}`}
+                  className={`w-full flex justify-between items-center text-left section-toggle ${
+                    openSections.profile ? 'open' : ''
+                  }`}
                   onClick={() => toggleSection('profile')}
                 >
                   <h2 className="section-title">Profile</h2>
@@ -623,7 +271,9 @@ export default function WebhookPage() {
               <div className="border-b border-gray-700 py-2">
                 <button
                   type="button"
-                  className={`w-full flex justify-between items-center text-left section-toggle ${openSections.content ? 'open' : ''}`}
+                  className={`w-full flex justify-between items-center text-left section-toggle ${
+                    openSections.content ? 'open' : ''
+                  }`}
                   onClick={() => toggleSection('content')}
                 >
                   <h2 className="section-title">Content</h2>
@@ -652,7 +302,9 @@ export default function WebhookPage() {
               <div className="border-b border-gray-700 py-2">
                 <button
                   type="button"
-                  className={`w-full flex justify-between items-center text-left section-toggle ${openSections.optional ? 'open' : ''}`}
+                  className={`w-full flex justify-between items-center text-left section-toggle ${
+                    openSections.optional ? 'open' : ''
+                  }`}
                   onClick={() => toggleSection('optional')}
                 >
                   <h2 className="section-title">Optional Settings</h2>
@@ -695,11 +347,15 @@ export default function WebhookPage() {
                   </div>
                 </div>
               </div>
+      
+              <ScheduleManager builder={builder} />
 
               <div className="border-b border-gray-700 py-2">
                 <button
                   type="button"
-                  className={`w-full flex justify-between items-center text-left section-toggle ${openSections.embeds ? 'open' : ''}`}
+                  className={`w-full flex justify-between items-center text-left section-toggle ${
+                    openSections.embeds ? 'open' : ''
+                  }`}
                   onClick={() => toggleSection('embeds')}
                 >
                   <h2 className="section-title">Embeds</h2>
@@ -985,7 +641,9 @@ export default function WebhookPage() {
               <div className="py-2">
                 <button
                   type="button"
-                  className={`w-full flex justify-between items-center text-left section-toggle ${openSections.advanced ? 'open' : ''}`}
+                  className={`w-full flex justify-between items-center text-left section-toggle ${
+                    openSections.advanced ? 'open' : ''
+                  }`}
                   onClick={() => toggleSection('advanced')}
                 >
                   <h2 className="section-title">Advanced</h2>
@@ -1072,6 +730,8 @@ export default function WebhookPage() {
                 </div>
               )}
             </form>
+
+            <ScheduleManager builder={builder} />
           </div>
         </div>
 
