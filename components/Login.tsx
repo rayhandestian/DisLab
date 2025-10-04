@@ -1,12 +1,10 @@
 'use client'
 
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export default function Login() {
   const supabase = useSupabaseClient()
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async () => {
