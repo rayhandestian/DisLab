@@ -27,7 +27,7 @@ function HomeContent() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="bg-gray-800 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-semibold text-white mb-4">Send Webhook Now</h2>
             <p className="text-gray-400 mb-6">
@@ -38,19 +38,6 @@ function HomeContent() {
               className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
             >
               Send Now
-            </Link>
-          </div>
-
-          <div className="bg-gray-800 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-semibold text-white mb-4">Schedule Webhooks</h2>
-            <p className="text-gray-400 mb-6">
-              Login with Discord to schedule webhooks and manage your automated messages.
-            </p>
-            <Link
-              href="/webhook/scheduled"
-              className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
-            >
-              Schedule
             </Link>
           </div>
         </div>
