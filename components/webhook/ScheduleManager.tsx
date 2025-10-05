@@ -24,6 +24,19 @@ import {
 
 const defaultScheduleTimeValue = () => toLocalISOString(new Date(Date.now() + 60 * 60 * 1000))
 
+const censorWebhookUrl = (url: string): string => {
+  if (!url) return url
+  // For Discord webhook URLs, censor the webhook ID and token
+  const match = url.match(/^https:\/\/discord\.com\/api\/webhooks\/(\d+)\//)
+  if (match) {
+    const webhookId = match[1]
+    const prefix = `https://discord.com/api/webhooks/${webhookId.substring(0, 4)}****`
+    const suffix = url.split('/').pop()?.substring(0, 4) + '****' || ''
+    return `${prefix}/${suffix}`
+  }
+  return url
+}
+
 export default function ScheduleManager() {
   const supabase = useSupabase()
   const { user } = useUser()
@@ -491,7 +504,7 @@ export default function ScheduleManager() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 truncate">{schedule.webhook_url}</p>
+                      <p className="text-xs text-gray-400 truncate">{censorWebhookUrl(schedule.webhook_url)}</p>
                       {executionInfo && (
                         <p className="text-xs text-gray-500 mt-1">{executionInfo}</p>
                       )}
