@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react'
+import { useSupabase, useUser } from '@/hooks/useSupabase'
 import toast from 'react-hot-toast'
 
 interface ScheduleData {
@@ -18,8 +18,8 @@ interface Profile {
 }
 
 export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
-  const supabase = useSupabaseClient()
-  const user = useUser()
+  const supabase = useSupabase()
+  const { user } = useUser()
   const [loading, setLoading] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [scheduleCount, setScheduleCount] = useState(0)

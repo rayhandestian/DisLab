@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react'
+import { useSupabase, useUser } from '@/hooks/useSupabase'
 import toast from 'react-hot-toast'
 
 import Login from '@/components/Login'
@@ -59,8 +59,8 @@ const snapshotFromBuilder = (
 const defaultScheduleTimeValue = () => toLocalISOString(new Date(Date.now() + 60 * 60 * 1000))
 
 export default function ScheduleManager({ builder }: ScheduleManagerProps) {
-  const supabase = useSupabaseClient()
-  const user = useUser()
+  const supabase = useSupabase()
+  const { user } = useUser()
 
   const [schedules, setSchedules] = useState<ScheduleRow[]>([])
   const [loadingSchedules, setLoadingSchedules] = useState(false)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react'
+import { useSupabase, useUser } from '@/hooks/useSupabase'
 import toast from 'react-hot-toast'
 
 interface Schedule {
@@ -13,8 +13,8 @@ interface Schedule {
 }
 
 export default function ScheduleList({ refresh }: { refresh: number }) {
-  const supabase = useSupabaseClient()
-  const user = useUser()
+  const supabase = useSupabase()
+  const { user } = useUser()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
 

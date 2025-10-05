@@ -1,6 +1,6 @@
 'use client'
 
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { createClient } from '@/lib/supabase'
 import { useState } from 'react'
 
 const buildRedirectTo = () => {
@@ -27,8 +27,8 @@ const buildRedirectTo = () => {
 }
 
 export default function Login() {
-  const supabase = useSupabaseClient()
   const [loading, setLoading] = useState(false)
+  const supabase = createClient()
 
   const handleLogin = async () => {
     setLoading(true)

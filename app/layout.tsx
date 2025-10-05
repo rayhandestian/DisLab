@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import SupabaseProvider from "@/components/SupabaseProvider";
 import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({
@@ -21,10 +20,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
-        <SupabaseProvider>
-          {children}
-          <Toaster position="top-right" />
-        </SupabaseProvider>
+        {children}
+        <Toaster position="top-right" />
       </body>
     </html>
   );
