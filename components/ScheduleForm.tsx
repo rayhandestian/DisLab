@@ -270,18 +270,20 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
               />
             )}
 
-            {/* Start time */}
-            <div>
-              <label className="form-label">
-                {isRecurring ? 'Start Time' : 'Schedule Time'}
-              </label>
-              <input
-                type="datetime-local"
-                value={data.scheduleTime}
-                onChange={(e) => setData({ ...data, scheduleTime: e.target.value })}
-                className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3"
-              />
-            </div>
+            {/* Start time - hide for custom cron since timing is in cron expression */}
+            {recurrencePattern !== 'custom' && (
+              <div>
+                <label className="form-label">
+                  {isRecurring ? 'Start Time' : 'Schedule Time'}
+                </label>
+                <input
+                  type="datetime-local"
+                  value={data.scheduleTime}
+                  onChange={(e) => setData({ ...data, scheduleTime: e.target.value })}
+                  className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3"
+                />
+              </div>
+            )}
 
             {/* Max executions for recurring */}
             {isRecurring && (
@@ -303,7 +305,7 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
 
             <button
               onClick={handleSchedule}
-              disabled={loading || !data.name || !data.scheduleTime || !data.webhookUrl || !data.message}
+              disabled={loading || !data.name || (recurrencePattern !== 'custom' && !data.scheduleTime) || !data.webhookUrl || !data.message}
               className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
             >
               {loading ? 'Scheduling...' : 'Create Schedule'}

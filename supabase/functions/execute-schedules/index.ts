@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { parseAndCalculateNext } from './cron-parser.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -215,8 +216,11 @@ function calculateNextExecution(
       break
 
     case 'custom':
-      // For custom cron, default to +1 day
-      // In production, you'd want a proper cron parser
+      // Use cron parser for custom patterns
+      if (config?.cronExpression) {
+        return parseAndCalculateNext(config.cronExpression, fromDate)
+      }
+      // Fallback to +1 day if no cron expression
       next.setDate(next.getDate() + 1)
       break
 

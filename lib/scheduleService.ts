@@ -111,9 +111,17 @@ export const createSchedule = async ({
   })
 
   // Calculate next_execution_at
-  const nextExecutionAt = typeof scheduleTime === 'string'
-    ? new Date(scheduleTime).toISOString()
-    : scheduleTime.toISOString()
+  // For recurring schedules with * * * * * (every minute), start immediately
+  let nextExecutionAt: string
+  if (isRecurring && recurrencePattern === 'custom' && recurrenceConfig?.cronExpression === '* * * * *') {
+    // Start immediately for every-minute schedules
+    nextExecutionAt = new Date().toISOString()
+  } else {
+    // Use the provided schedule time
+    nextExecutionAt = typeof scheduleTime === 'string'
+      ? new Date(scheduleTime).toISOString()
+      : scheduleTime.toISOString()
+  }
 
   const { data, error } = await supabase
     .from(SCHEDULES_TABLE)
