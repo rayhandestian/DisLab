@@ -21,6 +21,7 @@ export type BuilderStateSnapshot = {
   suppressNotifications: boolean
   embeds: EmbedData[]
   files?: StoredFileAttachment[]
+  webhookUrl?: string
 }
 
 export type WebhookMessagePayload = {
@@ -116,6 +117,7 @@ export type HydratedBuilderState = {
   suppressNotifications: boolean
   embeds: EmbedData[]
   files?: StoredFileAttachment[]
+  webhookUrl?: string
 }
 
 export const hydrateBuilderState = (snapshot: Partial<BuilderStateSnapshot>): HydratedBuilderState => {
@@ -128,5 +130,6 @@ export const hydrateBuilderState = (snapshot: Partial<BuilderStateSnapshot>): Hy
     suppressNotifications: snapshot.suppressNotifications ?? false,
     embeds: snapshot.embeds ?? [],
     files: snapshot.files ?? [],
+    webhookUrl: snapshot.webhookUrl,
   }
 }

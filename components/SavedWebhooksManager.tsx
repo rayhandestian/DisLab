@@ -41,17 +41,24 @@ const cloneEmbedData = (embeds: EmbedData[]): EmbedData[] =>
 
 const snapshotFromBuilder = (
   builder: WebhookBuilderApi,
-  storedFiles: StoredFileAttachment[] = []
-): BuilderStateSnapshot => ({
-  content: builder.message,
-  username: builder.username,
-  avatarUrl: builder.avatarUrl,
-  threadName: builder.threadName,
-  suppressEmbeds: builder.suppressEmbeds,
-  suppressNotifications: builder.suppressNotifications,
-  embeds: cloneEmbedData(builder.embedsData),
-  files: storedFiles,
-})
+  storedFiles: StoredFileAttachment[] = [],
+  includeWebhookUrl: boolean = false
+): BuilderStateSnapshot => {
+  const snapshot: BuilderStateSnapshot = {
+    content: builder.message,
+    username: builder.username,
+    avatarUrl: builder.avatarUrl,
+    threadName: builder.threadName,
+    suppressEmbeds: builder.suppressEmbeds,
+    suppressNotifications: builder.suppressNotifications,
+    embeds: cloneEmbedData(builder.embedsData),
+    files: storedFiles,
+  }
+  if (includeWebhookUrl) {
+    (snapshot as BuilderStateSnapshot & { webhookUrl: string }).webhookUrl = builder.webhookUrl
+  }
+  return snapshot
+}
 
 export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerProps) {
   const supabase = useSupabase()
@@ -64,6 +71,7 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
 
   const [selectedWebhook, setSelectedWebhook] = useState<SavedWebhookRow | null>(null)
   const [webhookName, setWebhookName] = useState('')
+  const [saveWebhookUrl, setSaveWebhookUrl] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -99,6 +107,12 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
       hydrated.embeds.length > 0 ? hydrated.embeds : [createDefaultEmbed()]
     )
     builder.setFiles([])
+    if (hydrated.webhookUrl) {
+      builder.setWebhookUrl(hydrated.webhookUrl)
+      setSaveWebhookUrl(true)
+    } else {
+      setSaveWebhookUrl(false)
+    }
     setWebhookName(webhook.name)
     setSelectedWebhook(webhook)
   }
@@ -133,7 +147,7 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
     if (!user) return
     if (!validateWebhookInput()) return
 
-    const snapshot = snapshotFromBuilder(builder)
+    const snapshot = snapshotFromBuilder(builder, [], saveWebhookUrl)
 
     setSaving(true)
     try {
@@ -194,6 +208,7 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
   const handleNewWebhook = () => {
     setSelectedWebhook(null)
     setWebhookName('')
+    setSaveWebhookUrl(false)
     builder.setMessage('')
     builder.setUsername('')
     builder.setAvatarUrl('')
@@ -247,6 +262,20 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
             placeholder="My awesome webhook"
             className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
+        </div>
+        <div className="md:col-span-2">
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={saveWebhookUrl}
+              onChange={event => setSaveWebhookUrl(event.target.checked)}
+              className="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-600 focus:ring-indigo-500 mt-1"
+            />
+            <div>
+              <label className="text-sm text-gray-300">Save Webhook URL</label>
+              <p className="text-xs text-yellow-400">Warning: Webhook URLs are sensitive and can be used to send messages to your Discord channel. Only save if necessary.</p>
+            </div>
+          </div>
         </div>
         <div className="flex items-end gap-3">
           <button
@@ -304,7 +333,14 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-white truncate">{webhook.name}</h4>
+                    <div className="flex items-center">
+                      <h4 className="font-semibold text-white truncate">{webhook.name}</h4>
+                      {webhook.builder_state?.webhookUrl && (
+                        <svg className="w-4 h-4 text-yellow-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400 truncate">
                       {webhook.files?.length || 0} files • Created {new Date(webhook.created_at).toLocaleDateString()}
                     </p>
