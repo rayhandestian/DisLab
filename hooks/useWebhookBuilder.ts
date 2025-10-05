@@ -149,7 +149,7 @@ export function useWebhookBuilder(options: UseWebhookBuilderOptions = {}) {
     profile: true,
     content: true,
     optional: false,
-    embeds: true,
+    embeds: false,
     advanced: false,
   })
 

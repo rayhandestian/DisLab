@@ -418,7 +418,7 @@ export default function WebhookPage() {
                               onChange={event => handleEmbedInputChange('authorName', event.target.value)}
                               placeholder="e.g., Jane Doe"
                               maxLength={256}
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <p className="form-hint">Max 256 chars.</p>
                           </div>
@@ -429,7 +429,7 @@ export default function WebhookPage() {
                               value={activeEmbed.authorUrl}
                               onChange={event => handleEmbedInputChange('authorUrl', event.target.value)}
                               placeholder="https://..."
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                           <div>
@@ -439,7 +439,7 @@ export default function WebhookPage() {
                               value={activeEmbed.authorIconUrl}
                               onChange={event => handleEmbedInputChange('authorIconUrl', event.target.value)}
                               placeholder="https://..."
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                         </div>
@@ -456,7 +456,7 @@ export default function WebhookPage() {
                               onChange={event => handleEmbedInputChange('title', event.target.value)}
                               placeholder="e.g., Weekly Report"
                               maxLength={256}
-                              className="bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500 w-full"
+                              className="bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full"
                             />
                             <p className="form-hint">Max 256 chars.</p>
                           </div>
@@ -467,7 +467,7 @@ export default function WebhookPage() {
                               value={activeEmbed.url}
                               onChange={event => handleEmbedInputChange('url', event.target.value)}
                               placeholder="https://..."
-                              className="bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500 w-full"
+                              className="bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 w-full"
                             />
                           </div>
                           <div className="md:col-span-2">
@@ -478,7 +478,7 @@ export default function WebhookPage() {
                               rows={5}
                               placeholder="Supports Markdown..."
                               maxLength={4096}
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <p className="form-hint">Max 4096 chars.</p>
                           </div>
@@ -495,7 +495,7 @@ export default function WebhookPage() {
                               value={activeEmbed.color}
                               onChange={event => handleEmbedInputChange('color', event.target.value)}
                               placeholder="#5865F2"
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                         </div>
@@ -511,7 +511,7 @@ export default function WebhookPage() {
                               value={activeEmbed.imageUrl}
                               onChange={event => handleEmbedInputChange('imageUrl', event.target.value)}
                               placeholder="https://..."
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                           <div>
@@ -521,7 +521,7 @@ export default function WebhookPage() {
                               value={activeEmbed.thumbnailUrl}
                               onChange={event => handleEmbedInputChange('thumbnailUrl', event.target.value)}
                               placeholder="https://..."
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                         </div>
@@ -538,7 +538,7 @@ export default function WebhookPage() {
                               onChange={event => handleEmbedInputChange('footerText', event.target.value)}
                               placeholder="e.g., Status: OK"
                               maxLength={2048}
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <p className="form-hint">Max 2048 chars.</p>
                           </div>
@@ -549,7 +549,7 @@ export default function WebhookPage() {
                               value={activeEmbed.footerIconUrl}
                               onChange={event => handleEmbedInputChange('footerIconUrl', event.target.value)}
                               placeholder="https://..."
-                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                              className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                           <div className="md:col-span-2">
@@ -568,7 +568,7 @@ export default function WebhookPage() {
                                 type="datetime-local"
                                 value={activeEmbed.timestampValue ?? ''}
                                 onChange={event => handleTimestampChange(event.target.value)}
-                                className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500 text-gray-300"
+                                className="w-full bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-300"
                               />
                             </div>
                           </div>
@@ -589,7 +589,7 @@ export default function WebhookPage() {
                                     onChange={event => handleFieldChange(field.id, { name: event.target.value })}
                                     placeholder="Max 256 chars"
                                     maxLength={256}
-                                    className="field-name w-full mt-1 bg-gray-700 border border-gray-600 text-white rounded-md p-2 text-sm focus:ring-1 focus:ring-indigo-500"
+                                    className="field-name w-full mt-1 bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm"
                                   />
                                 </div>
                                 <div className="flex items-end pb-1">
@@ -611,7 +611,7 @@ export default function WebhookPage() {
                                   onChange={event => handleFieldChange(field.id, { value: event.target.value })}
                                   placeholder="Max 1024 chars"
                                   maxLength={1024}
-                                  className="field-value w-full mt-1 bg-gray-700 border border-gray-600 text-white rounded-md p-2 text-sm"
+                                  className="field-value w-full mt-1 bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 text-sm"
                                   rows={2}
                                 />
                               </div>
@@ -685,7 +685,7 @@ export default function WebhookPage() {
                         <input
                           type="url"
                           placeholder="Discord message URL (feature disabled)"
-                          className="flex-grow bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-indigo-500"
+                          className="flex-grow bg-gray-700 p-2.5 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           disabled
                         />
                         <button
