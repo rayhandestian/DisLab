@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 
 import Login from '@/components/Login'
 import RecurrenceSelector from '@/components/RecurrenceSelector'
+import WebhookPreview from '@/components/WebhookPreview'
 import {
   createSchedule,
   deleteSchedule,
@@ -335,6 +336,10 @@ export default function ScheduleManager() {
               onChange={event => {
                 const webhook = savedWebhooks.find(w => w.id === event.target.value)
                 setSelectedSavedWebhook(webhook || null)
+                // Auto-populate webhook URL if saved webhook has one
+                if (webhook?.builder_state?.webhookUrl) {
+                  setWebhookUrl(webhook.builder_state.webhookUrl)
+                }
               }}
               className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
@@ -418,21 +423,21 @@ export default function ScheduleManager() {
         </div>
 
         <div className="space-y-3">
-          {selectedSavedWebhook && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-200 mb-2">Selected Webhook Preview</h3>
-              <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-4">
-                <h4 className="font-semibold text-white mb-2">{selectedSavedWebhook.name}</h4>
-                <p className="text-sm text-gray-300 mb-2">
-                  {selectedSavedWebhook.message_data?.content || 'No message'}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {selectedSavedWebhook.files?.length || 0} files • Created {new Date(selectedSavedWebhook.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+           {selectedSavedWebhook && (
+             <div>
+               <h3 className="text-lg font-semibold text-gray-200 mb-2">Selected Webhook Preview</h3>
+               <WebhookPreview
+                 username={selectedSavedWebhook.builder_state?.username}
+                 avatarUrl={selectedSavedWebhook.builder_state?.avatarUrl}
+                 message={selectedSavedWebhook.builder_state?.content}
+                 embedsData={selectedSavedWebhook.builder_state?.embeds || []}
+               />
+               <div className="mt-2 text-xs text-gray-400">
+                 {selectedSavedWebhook.files?.length || 0} files • Created {new Date(selectedSavedWebhook.created_at).toLocaleDateString()}
+               </div>
+             </div>
+           )}
+         </div>
       </div>
 
       <div>
