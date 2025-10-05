@@ -33,11 +33,10 @@ export default function Login() {
   const handleLogin = async () => {
     setLoading(true)
     const targetRedirect = buildRedirectTo()
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
-        redirectTo: targetRedirect,
-        skipBrowserRedirect: true
+        redirectTo: targetRedirect
       }
     })
 
@@ -47,20 +46,8 @@ export default function Login() {
       return
     }
 
-    if (data?.url) {
-      try {
-        const oauthUrl = new URL(data.url)
-        oauthUrl.searchParams.set('redirect_to', targetRedirect)
-        window.location.href = oauthUrl.toString()
-        return
-      } catch (parseError) {
-        console.error('Error parsing OAuth redirect URL:', parseError)
-        window.location.href = data.url
-        return
-      }
-    }
-
-    setLoading(false)
+    // Supabase will automatically redirect to Discord OAuth
+    // No need to manually handle the redirect
   }
 
   return (
