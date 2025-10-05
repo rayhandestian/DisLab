@@ -6,27 +6,21 @@ import {
   type BuilderStateSnapshot,
   type ScheduleInsertPayload,
   type StoredFileAttachment,
-  type WebhookMessagePayload,
 } from '@/lib/webhookSerializer'
 
+import type {
+  RecurrencePattern,
+  RecurrenceConfig,
+  ScheduleRow as ScheduleRowType,
+  CreateScheduleParams as CreateScheduleParamsType,
+  UpdateScheduleParams as UpdateScheduleParamsType,
+} from '@/lib/types/schedule'
+
 export type { StoredFileAttachment } from '@/lib/webhookSerializer'
+export type { ScheduleRow, RecurrencePattern, RecurrenceConfig } from '@/lib/types/schedule'
 
 export const SCHEDULES_TABLE = 'schedules'
 export const SCHEDULE_FILES_BUCKET = 'webhook-files'
-
-export type ScheduleRow = {
-  id: string
-  user_id: string
-  name: string
-  webhook_url: string
-  message_data: WebhookMessagePayload
-  schedule_time: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-  builder_state?: BuilderStateSnapshot
-  files?: StoredFileAttachment[]
-}
 
 const generateId = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`)
 
@@ -82,15 +76,7 @@ export const removeScheduleFiles = async (supabase: SupabaseClient, files?: Stor
   await supabase.storage.from(SCHEDULE_FILES_BUCKET).remove(files.map(file => file.storagePath))
 }
 
-export type CreateScheduleParams = {
-  supabase: SupabaseClient
-  userId: string
-  name: string
-  webhookUrl: string
-  scheduleTime: Date | string
-  snapshot: BuilderStateSnapshot
-  files?: File[]
-}
+export type CreateScheduleParams = CreateScheduleParamsType
 
 export const createSchedule = async ({
   supabase,
@@ -100,7 +86,11 @@ export const createSchedule = async ({
   scheduleTime,
   snapshot,
   files,
-}: CreateScheduleParams): Promise<ScheduleRow> => {
+  isRecurring = false,
+  recurrencePattern = 'once',
+  recurrenceConfig,
+  maxExecutions,
+}: CreateScheduleParams): Promise<ScheduleRowType> => {
   const scheduleId = generateId()
   const uploadedFiles = files?.length
     ? await uploadScheduleFiles({ supabase, userId, scheduleId, files })
@@ -120,11 +110,22 @@ export const createSchedule = async ({
     files: uploadedFiles,
   })
 
+  // Calculate next_execution_at
+  const nextExecutionAt = typeof scheduleTime === 'string'
+    ? new Date(scheduleTime).toISOString()
+    : scheduleTime.toISOString()
+
   const { data, error } = await supabase
     .from(SCHEDULES_TABLE)
     .insert({
       id: scheduleId,
       ...insertPayload,
+      is_recurring: isRecurring,
+      recurrence_pattern: recurrencePattern,
+      recurrence_config: recurrenceConfig,
+      next_execution_at: nextExecutionAt,
+      max_executions: maxExecutions,
+      execution_count: 0,
     })
     .select()
     .single()
@@ -136,22 +137,10 @@ export const createSchedule = async ({
     throw error
   }
 
-  return data as ScheduleRow
+  return data as ScheduleRowType
 }
 
-export type UpdateScheduleParams = {
-  supabase: SupabaseClient
-  scheduleId: string
-  userId: string
-  name: string
-  webhookUrl: string
-  scheduleTime: Date | string
-  snapshot: BuilderStateSnapshot
-  retainedFiles?: StoredFileAttachment[]
-  filesToRemove?: StoredFileAttachment[]
-  newFiles?: File[]
-  isActive?: boolean
-}
+export type UpdateScheduleParams = UpdateScheduleParamsType
 
 export const updateSchedule = async ({
   supabase,
@@ -165,7 +154,11 @@ export const updateSchedule = async ({
   filesToRemove = [],
   newFiles,
   isActive = true,
-}: UpdateScheduleParams): Promise<ScheduleRow> => {
+  isRecurring = false,
+  recurrencePattern = 'once',
+  recurrenceConfig,
+  maxExecutions,
+}: UpdateScheduleParams): Promise<ScheduleRowType> => {
   const uploadedFiles = newFiles?.length
     ? await uploadScheduleFiles({ supabase, userId, scheduleId, files: newFiles })
     : []
@@ -180,7 +173,7 @@ export const updateSchedule = async ({
   const isoScheduleTime = typeof scheduleTime === 'string' ? new Date(scheduleTime).toISOString() : scheduleTime.toISOString()
   const messagePayload = createWebhookMessagePayload(snapshotWithFiles)
 
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from(SCHEDULES_TABLE)
     .update({
       name,
@@ -190,6 +183,11 @@ export const updateSchedule = async ({
       builder_state: snapshotWithFiles,
       files: nextFiles,
       is_active: isActive,
+      is_recurring: isRecurring,
+      recurrence_pattern: recurrencePattern,
+      recurrence_config: recurrenceConfig,
+      next_execution_at: isoScheduleTime,
+      max_executions: maxExecutions,
       updated_at: new Date().toISOString(),
     })
     .eq('id', scheduleId)
@@ -208,7 +206,7 @@ export const updateSchedule = async ({
     void removeScheduleFiles(supabase, filesToRemove)
   }
 
-  return data as ScheduleRow
+  return data as ScheduleRowType
 }
 
 export type DeleteScheduleParams = {
@@ -230,7 +228,7 @@ export const deleteSchedule = async ({ supabase, scheduleId, userId }: DeleteSch
     throw error
   }
 
-  const deletedRow = data as ScheduleRow | null
+  const deletedRow = data as ScheduleRowType | null
   if (deletedRow?.files?.length) {
     void removeScheduleFiles(supabase, deletedRow.files)
   }
@@ -249,7 +247,7 @@ export const fetchSchedules = async (supabase: SupabaseClient, userId: string) =
     throw error
   }
 
-  return (data ?? []) as ScheduleRow[]
+  return (data ?? []) as ScheduleRowType[]
 }
 
 export const getScheduleById = async (supabase: SupabaseClient, userId: string, scheduleId: string) => {
@@ -264,7 +262,85 @@ export const getScheduleById = async (supabase: SupabaseClient, userId: string, 
     throw error
   }
 
-  return data as ScheduleRow
+  return data as ScheduleRowType
+}
+
+/**
+ * Calculate the next execution time for a recurring schedule
+ */
+export function calculateNextExecution(
+  pattern: RecurrencePattern,
+  config: RecurrenceConfig,
+  fromDate: Date = new Date()
+): Date {
+  const next = new Date(fromDate)
+  
+  switch (pattern) {
+    case 'once':
+      return next
+      
+    case 'daily':
+      next.setDate(next.getDate() + 1)
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':').map(Number)
+        next.setHours(hours, minutes, 0, 0)
+      }
+      break
+      
+    case 'weekly':
+      if (config.days && config.days.length > 0) {
+        const currentDay = next.getDay()
+        const sortedDays = [...config.days].sort()
+        
+        // Find next day in the week
+        let nextDay = sortedDays.find(d => d > currentDay)
+        
+        if (nextDay === undefined) {
+          // Wrap to next week
+          nextDay = sortedDays[0]
+          next.setDate(next.getDate() + (7 - currentDay + nextDay))
+        } else {
+          next.setDate(next.getDate() + (nextDay - currentDay))
+        }
+        
+        if (config.time) {
+          const [hours, minutes] = config.time.split(':').map(Number)
+          next.setHours(hours, minutes, 0, 0)
+        }
+      }
+      break
+      
+    case 'monthly':
+      next.setMonth(next.getMonth() + 1)
+      if (config.day) {
+        next.setDate(config.day)
+      }
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':').map(Number)
+        next.setHours(hours, minutes, 0, 0)
+      }
+      break
+      
+    case 'custom':
+      // For custom cron, this would need a proper cron parser
+      // For now, default to +1 day
+      next.setDate(next.getDate() + 1)
+      break
+  }
+  
+  return next
+}
+
+/**
+ * Check if a schedule should continue executing
+ */
+export function shouldContinueExecution(schedule: ScheduleRowType): boolean {
+  if (!schedule.is_recurring) return false
+  if (!schedule.is_active) return false
+  if (schedule.max_executions && schedule.execution_count >= schedule.max_executions) {
+    return false
+  }
+  return true
 }
 
 export const createSignedFileUrl = async (supabase: SupabaseClient, file: StoredFileAttachment, expiresInSeconds = 60) => {

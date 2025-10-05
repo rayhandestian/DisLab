@@ -5,6 +5,7 @@ import { useSupabase, useUser } from '@/hooks/useSupabase'
 import toast from 'react-hot-toast'
 
 import Login from '@/components/Login'
+import RecurrenceSelector from '@/components/RecurrenceSelector'
 import {
   createSchedule,
   deleteSchedule,
@@ -13,6 +14,8 @@ import {
   updateSchedule,
   type ScheduleRow,
   type StoredFileAttachment,
+  type RecurrencePattern,
+  type RecurrenceConfig,
 } from '@/lib/scheduleService'
 import {
   hydrateBuilderState,
@@ -72,6 +75,12 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
   const [scheduleTime, setScheduleTime] = useState('')
   const [existingFiles, setExistingFiles] = useState<StoredFileAttachment[]>([])
   const [removedFiles, setRemovedFiles] = useState<StoredFileAttachment[]>([])
+  
+  // Recurrence state
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>('once')
+  const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>({})
+  const [maxExecutions, setMaxExecutions] = useState<number | undefined>(undefined)
 
   const newFilesCount = builder.files.length
   const retainedFilesCount = existingFiles.length
@@ -117,6 +126,10 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     setScheduleTime('')
     setExistingFiles([])
     setRemovedFiles([])
+    setIsRecurring(false)
+    setRecurrencePattern('once')
+    setRecurrenceConfig({})
+    setMaxExecutions(undefined)
     builder.setFiles([])
   }
 
@@ -140,6 +153,10 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     setScheduleTime(toLocalISOString(new Date(schedule.schedule_time)))
     setExistingFiles(schedule.files ?? [])
     setRemovedFiles([])
+    setIsRecurring(schedule.is_recurring || false)
+    setRecurrencePattern(schedule.recurrence_pattern || 'once')
+    setRecurrenceConfig(schedule.recurrence_config || {})
+    setMaxExecutions(schedule.max_executions)
     setSelectedSchedule(schedule)
   }
 
@@ -224,6 +241,10 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
           filesToRemove: removedFiles,
           newFiles: builder.files,
           isActive: true,
+          isRecurring,
+          recurrencePattern,
+          recurrenceConfig: isRecurring ? recurrenceConfig : undefined,
+          maxExecutions: isRecurring ? maxExecutions : undefined,
         })
         toast.success('Schedule updated')
       } else {
@@ -235,6 +256,10 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
           scheduleTime,
           snapshot,
           files: builder.files,
+          isRecurring,
+          recurrencePattern,
+          recurrenceConfig: isRecurring ? recurrenceConfig : undefined,
+          maxExecutions: isRecurring ? maxExecutions : undefined,
         })
         toast.success('Schedule created')
       }
@@ -337,8 +362,39 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
+          {/* Recurring toggle */}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => {
+                  setIsRecurring(e.target.checked)
+                  if (!e.target.checked) {
+                    setRecurrencePattern('once')
+                    setRecurrenceConfig({})
+                  }
+                }}
+                className="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+              />
+              <span className="ml-2 text-white font-semibold">Recurring Schedule</span>
+            </label>
+          </div>
+
+          {/* Recurrence selector */}
+          {isRecurring && (
+            <RecurrenceSelector
+              pattern={recurrencePattern}
+              config={recurrenceConfig}
+              onPatternChange={setRecurrencePattern}
+              onConfigChange={setRecurrenceConfig}
+            />
+          )}
+          
           <div>
-            <label className="form-label">Schedule Time</label>
+            <label className="form-label">
+              {isRecurring ? 'Start Time' : 'Schedule Time'}
+            </label>
             <input
               type="datetime-local"
               value={scheduleTime}
@@ -346,9 +402,27 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
             <p className="form-hint mt-1">
-              Uses your local timezone. Cron runs every minute via Supabase.
+              Uses your local timezone. {isRecurring ? 'First execution will be at this time.' : 'Cron runs every minute via Supabase.'}
             </p>
           </div>
+          
+          {/* Max executions for recurring */}
+          {isRecurring && (
+            <div>
+              <label className="form-label">Max Executions (Optional)</label>
+              <input
+                type="number"
+                min="1"
+                value={maxExecutions || ''}
+                onChange={(e) => setMaxExecutions(e.target.value ? parseInt(e.target.value) : undefined)}
+                placeholder="Leave empty for unlimited"
+                className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <p className="form-hint mt-1">
+                Schedule will stop after this many executions
+              </p>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="button"
@@ -463,22 +537,44 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {schedules.map(schedule => {
-                  const scheduledDate = new Date(schedule.schedule_time)
+                  const scheduledDate = new Date(schedule.next_execution_at || schedule.schedule_time)
                   const scheduledLabel = scheduledDate.toLocaleString()
+                  const isRecurringSchedule = schedule.is_recurring
+                  const executionInfo = isRecurringSchedule
+                    ? `${schedule.execution_count || 0} executions`
+                    : null
+                  
                   return (
                     <tr key={schedule.id} className="text-sm text-gray-200">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-white">{schedule.name}</div>
+                        <div className="font-medium text-white">
+                          {schedule.name}
+                          {isRecurringSchedule && (
+                            <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-0.5 rounded">
+                              Recurring
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-gray-400">{schedule.webhook_url}</div>
+                        {executionInfo && (
+                          <div className="text-xs text-gray-500 mt-1">{executionInfo}</div>
+                        )}
                       </td>
-                      <td className="px-4 py-3">{scheduledLabel}</td>
+                      <td className="px-4 py-3">
+                        <div>{scheduledLabel}</div>
+                        {isRecurringSchedule && schedule.recurrence_pattern && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            Pattern: {schedule.recurrence_pattern}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                             schedule.is_active ? 'bg-green-900/60 text-green-300' : 'bg-gray-800 text-gray-400'
                           }`}
                         >
-                          {schedule.is_active ? 'Active' : 'Sent'}
+                          {schedule.is_active ? 'Active' : 'Completed'}
                         </span>
                       </td>
                       <td className="px-4 py-3">

@@ -1,6 +1,17 @@
 # DisLab - Discord Tools
 
-A modern web application for scheduling and sending Discord webhooks with user authentication.
+A modern web application for scheduling and sending Discord webhooks with user authentication and recurring schedules.
+
+## ✨ Features
+
+- 🔐 **Discord OAuth Authentication** - Secure login with Discord
+- 📅 **One-Time Schedules** - Schedule webhooks for specific dates and times
+- 🔄 **Recurring Schedules** - Daily, weekly, monthly, or custom cron patterns
+- 💬 **Natural Language** - Type "every Monday at 9 AM" and it just works
+- 📎 **File Attachments** - Send files with your webhooks
+- 🎨 **Rich Embeds** - Full Discord embed support
+- 📊 **Execution Tracking** - Monitor schedule execution history
+- 🎯 **Max Executions** - Limit recurring schedules to run N times
 
 ## Setup Instructions
 
@@ -35,7 +46,12 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.com
 
 ### 3. Database Schema
 
-Run the following SQL in Supabase SQL Editor:
+**IMPORTANT**: For recurring schedules support, use the migration SQL from [`docs/DATABASE_MIGRATION.md`](docs/DATABASE_MIGRATION.md) instead of the basic schema below.
+
+<details>
+<summary>Basic Schema (One-Time Schedules Only - Click to expand)</summary>
+
+Run the following SQL in Supabase SQL Editor for basic one-time schedules:
 
 ```sql
 -- Users table (extends auth.users)
@@ -97,7 +113,44 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 ```
 
+</details>
+
+**For Full Recurring Schedules Support:**
+
+See [`docs/DATABASE_MIGRATION.md`](docs/DATABASE_MIGRATION.md) for the complete migration that adds:
+- Recurring schedule fields (`is_recurring`, `recurrence_pattern`, `recurrence_config`)
+- Execution tracking (`execution_count`, `last_executed_at`, `next_execution_at`)
+- File attachment support (`builder_state`, `files`)
+- Performance indexes
+
 ### 4. Supabase Edge Functions
+
+**Option A: Use the New Edge Function (Recommended)**
+
+The project includes a complete Edge Function at [`supabase/functions/execute-schedules/index.ts`](supabase/functions/execute-schedules/index.ts) that supports:
+- One-time and recurring schedules
+- Automatic next execution calculation
+- Execution count tracking
+- Max executions limit
+
+Deploy it using Supabase CLI:
+
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Login and link project
+supabase login
+supabase link --project-ref your-project-ref
+
+# Deploy the function
+supabase functions deploy execute-schedules
+```
+
+**Option B: Basic Edge Function (One-Time Only)**
+
+<details>
+<summary>Click to expand basic Edge Function code</summary>
 
 Create an Edge Function for sending webhooks:
 
@@ -154,15 +207,74 @@ serve(async (req) => {
 })
 ```
 
+</details>
+
 ### 5. Supabase Cron
 
 Set up a cron job in Supabase Dashboard > Cron to run the `send-webhook` function every minute:
 
-- Name: `send-scheduled-webhooks`
+- Name: `execute-scheduled-webhooks`
 - Schedule: `* * * * *` (every minute)
-- Command: Select your `send-webhook` Edge Function
+- Command: Select your `execute-schedules` Edge Function
 - HTTP Method: POST
 - No payload needed
+
+## 📖 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) folder:
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get started in minutes
+- **[System Architecture](docs/SCHEDULE_SYSTEM_ARCHITECTURE.md)** - Complete system design
+- **[Database Migration](docs/DATABASE_MIGRATION.md)** - SQL migration for recurring schedules
+- **[Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)** - Code examples and patterns
+- **[Testing & Deployment](docs/TESTING_AND_DEPLOYMENT.md)** - QA and production deployment
+
+## 🔄 Recurring Schedules
+
+### Supported Patterns
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| **One-Time** | Execute once at specified time | Tomorrow at 3 PM |
+| **Daily** | Every day at specified time | Every day at 9 AM |
+| **Weekly** | Specific days of week | Mon, Wed, Fri at 2 PM |
+| **Monthly** | Specific day of month | 15th of each month at noon |
+| **Custom** | Full cron expression | `0 9 * * 1-5` (weekdays at 9 AM) |
+
+### Natural Language Examples
+
+```
+"every Monday at 9 AM"           → Weekly on Mondays at 09:00
+"daily at 2:30 PM"               → Daily at 14:30
+"every weekday at 8 AM"          → Mon-Fri at 08:00
+"monthly on the 1st at noon"     → 1st of each month at 12:00
+"every 6 hours"                  → Custom cron: 0 */6 * * *
+```
+
+### Usage
+
+1. **Login** with Discord
+2. **Create a webhook** with your message content
+3. **Toggle "Recurring Schedule"** checkbox
+4. **Choose pattern** or use natural language input
+5. **Set start time** and optional max executions
+6. **Create schedule** - it will execute automatically!
+
+## 🚀 Quick Start
+
+### For Immediate Fix (Existing Users)
+
+If you're experiencing "Failed to save schedule" errors:
+
+1. Run the database migration from [`docs/DATABASE_MIGRATION.md`](docs/DATABASE_MIGRATION.md)
+2. Deploy the Edge Function from [`supabase/functions/execute-schedules/`](supabase/functions/execute-schedules/)
+3. Configure the cron job (see step 5 above)
+
+The updated code uses the proper service layer and will work immediately.
+
+### For New Implementations
+
+Follow the [Quick Start Guide](docs/QUICK_START.md) for a complete step-by-step implementation (8-11 hours total).
 
 ## Development
 
@@ -188,12 +300,100 @@ In Supabase Dashboard > Cron, create a new cron job:
 - Name: `send-scheduled-webhooks`
 - Schedule: `* * * * *` (every minute)
 - HTTP Method: POST
-- URL: `https://your-supabase-url.supabase.co/functions/v1/send-webhook`
+- URL: `https://your-supabase-url.supabase.co/functions/v1/execute-schedules`
 - No headers or body needed
 
-## Testing
+## 🧪 Testing
 
+### One-Time Schedule
 1. Login with Discord
-2. Create a schedule
-3. Wait for the scheduled time or manually trigger the cron
-4. Check if webhook was sent
+2. Create a webhook with message content
+3. Set a schedule time 2-3 minutes in the future
+4. Click "Create Schedule"
+5. Wait for execution
+6. Verify webhook was sent to Discord
+7. Check schedule is marked as "Completed"
+
+### Recurring Schedule
+1. Create a webhook
+2. Toggle "Recurring Schedule"
+3. Select "Daily" and set time
+4. Create schedule
+5. Wait for first execution
+6. Verify webhook sent
+7. Check schedule remains "Active"
+8. Verify `next_execution_at` is updated to tomorrow
+
+See [Testing & Deployment Guide](docs/TESTING_AND_DEPLOYMENT.md) for comprehensive test cases.
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Edge Functions, Storage, Auth)
+- **Scheduling**: pg_cron (runs every minute)
+- **Authentication**: Discord OAuth via Supabase Auth
+
+## 📝 Project Structure
+
+```
+Discord-Lab/
+├── app/                          # Next.js app directory
+├── components/                   # React components
+│   ├── RecurrenceSelector.tsx   # Recurring schedule UI
+│   ├── ScheduleForm.tsx         # Schedule creation form
+│   └── webhook/
+│       └── ScheduleManager.tsx  # Advanced schedule manager
+├── lib/                         # Utilities and services
+│   ├── types/
+│   │   └── schedule.ts         # TypeScript types
+│   ├── cronParser.ts           # Natural language parser
+│   ├── scheduleService.ts      # Schedule CRUD operations
+│   └── webhookSerializer.ts    # Webhook data serialization
+├── supabase/
+│   └── functions/
+│       └── execute-schedules/  # Edge Function for execution
+└── docs/                        # Comprehensive documentation
+    ├── QUICK_START.md
+    ├── SCHEDULE_SYSTEM_ARCHITECTURE.md
+    ├── DATABASE_MIGRATION.md
+    ├── IMPLEMENTATION_GUIDE.md
+    └── TESTING_AND_DEPLOYMENT.md
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read the documentation in [`docs/`](docs/) to understand the system architecture.
+
+## 📄 License
+
+MIT License - feel free to use this project for your own purposes.
+
+## 🆘 Troubleshooting
+
+### "Failed to save schedule" Error
+- **Cause**: Database schema mismatch
+- **Solution**: Run the migration from [`docs/DATABASE_MIGRATION.md`](docs/DATABASE_MIGRATION.md)
+
+### Schedules Not Executing
+- **Cause**: Edge Function not deployed or cron not configured
+- **Solution**: Deploy Edge Function and configure cron job (see steps 4-5 above)
+
+### Wrong Execution Time
+- **Cause**: Timezone mismatch
+- **Solution**: Times are stored in UTC, displayed in local timezone. Verify your browser timezone.
+
+For more troubleshooting, see [Testing & Deployment Guide](docs/TESTING_AND_DEPLOYMENT.md#monitoring--troubleshooting).
+
+## 🎯 Roadmap
+
+- [ ] Schedule templates
+- [ ] Bulk schedule operations
+- [ ] Email notifications for failures
+- [ ] Schedule execution history viewer
+- [ ] Advanced cron expression builder UI
+- [ ] Schedule sharing between users
+- [ ] Webhook response logging
+
+---
+
+**Need help?** Check the [documentation](docs/) or open an issue!

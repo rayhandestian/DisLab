@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useSupabase, useUser } from '@/hooks/useSupabase'
 import toast from 'react-hot-toast'
+import { createSchedule } from '@/lib/scheduleService'
+import type { RecurrencePattern, RecurrenceConfig } from '@/lib/types/schedule'
+import RecurrenceSelector from './RecurrenceSelector'
 
 interface ScheduleData {
   name: string
@@ -31,6 +34,12 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
     avatarUrl: '',
     scheduleTime: ''
   })
+  
+  // Recurrence state
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>('once')
+  const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>({})
+  const [maxExecutions, setMaxExecutions] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     if (user) {
@@ -116,23 +125,31 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
 
     setLoading(true)
     try {
-      const messageData = {
+      // Create snapshot from form data
+      const snapshot = {
         content: data.message,
-        username: data.username || undefined,
-        avatar_url: data.avatarUrl || undefined
+        username: data.username || '',
+        avatarUrl: data.avatarUrl || '',
+        threadName: '',
+        suppressEmbeds: false,
+        suppressNotifications: false,
+        embeds: [],
+        files: []
       }
 
-      const { error } = await supabase
-        .from('schedules')
-        .insert({
-          user_id: user.id,
-          name: data.name,
-          webhook_url: data.webhookUrl,
-          message_data: messageData,
-          schedule_time: new Date(data.scheduleTime).toISOString()
-        })
-
-      if (error) throw error
+      await createSchedule({
+        supabase,
+        userId: user.id,
+        name: data.name,
+        webhookUrl: data.webhookUrl,
+        scheduleTime: data.scheduleTime,
+        snapshot,
+        files: [],
+        isRecurring,
+        recurrencePattern,
+        recurrenceConfig: isRecurring ? recurrenceConfig : undefined,
+        maxExecutions: isRecurring ? maxExecutions : undefined,
+      })
 
       toast.success('Schedule created successfully!')
       onSuccess()
@@ -145,9 +162,13 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
         avatarUrl: '',
         scheduleTime: ''
       })
+      setIsRecurring(false)
+      setRecurrencePattern('once')
+      setRecurrenceConfig({})
+      setMaxExecutions(undefined)
     } catch (error) {
       console.error('Error creating schedule:', error)
-      toast.error('Error creating schedule')
+      toast.error('Failed to save schedule')
     } finally {
       setLoading(false)
     }
@@ -208,7 +229,7 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
         </button>
 
         {user && (
-          <>
+          <div className="w-full space-y-4">
             <div>
               <label className="form-label">Schedule Name</label>
               <input
@@ -220,8 +241,40 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
               />
             </div>
 
+            {/* Recurring toggle */}
+            <div className="flex items-center gap-3">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => {
+                    setIsRecurring(e.target.checked)
+                    if (!e.target.checked) {
+                      setRecurrencePattern('once')
+                      setRecurrenceConfig({})
+                    }
+                  }}
+                  className="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                />
+                <span className="ml-2 text-white font-semibold">Recurring Schedule</span>
+              </label>
+            </div>
+
+            {/* Recurrence selector */}
+            {isRecurring && (
+              <RecurrenceSelector
+                pattern={recurrencePattern}
+                config={recurrenceConfig}
+                onPatternChange={setRecurrencePattern}
+                onConfigChange={setRecurrenceConfig}
+              />
+            )}
+
+            {/* Start time */}
             <div>
-              <label className="form-label">Schedule Time</label>
+              <label className="form-label">
+                {isRecurring ? 'Start Time' : 'Schedule Time'}
+              </label>
               <input
                 type="datetime-local"
                 value={data.scheduleTime}
@@ -230,14 +283,32 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
               />
             </div>
 
+            {/* Max executions for recurring */}
+            {isRecurring && (
+              <div>
+                <label className="form-label">Max Executions (Optional)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={maxExecutions || ''}
+                  onChange={(e) => setMaxExecutions(e.target.value ? parseInt(e.target.value) : undefined)}
+                  placeholder="Leave empty for unlimited"
+                  className="bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3"
+                />
+                <p className="form-hint mt-1">
+                  Schedule will stop after this many executions
+                </p>
+              </div>
+            )}
+
             <button
               onClick={handleSchedule}
-              disabled={loading || !data.name || !data.scheduleTime}
-              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
+              disabled={loading || !data.name || !data.scheduleTime || !data.webhookUrl || !data.message}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
             >
-              {loading ? 'Scheduling...' : 'Schedule'}
+              {loading ? 'Scheduling...' : 'Create Schedule'}
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>
