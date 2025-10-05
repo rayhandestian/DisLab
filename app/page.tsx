@@ -29,13 +29,13 @@ function HomeContent() {
 
         <div className="max-w-4xl mx-auto">
           <div className="bg-gray-800 rounded-2xl p-8 text-center">
-            <h2 className="text-2xl font-semibold text-white mb-4">Send Webhook Now</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">Webhook Tools</h2>
             <p className="text-gray-400 mb-6">
               Send Discord webhooks immediately with full customization. No login required.
             </p>
             <Link
               href="/webhook"
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
+              className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md"
             >
               Send Now
             </Link>

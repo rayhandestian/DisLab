@@ -62,21 +62,6 @@ export default function Header() {
             DisLab
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/webhook"
-              className="text-gray-300 hover:text-white transition-colors duration-150 text-sm font-medium"
-            >
-              Webhook Sender
-            </Link>
-            <Link
-              href="/webhook/schedule-manager"
-              className="text-gray-300 hover:text-white transition-colors duration-150 text-sm font-medium"
-            >
-              Schedule Manager
-            </Link>
-          </nav>
 
           {/* User Section */}
           <div className="flex items-center gap-4">

@@ -1,9 +1,12 @@
 'use client'
 
+import Link from 'next/link'
+import { useEffect, useCallback } from 'react'
 import {
   DEFAULT_COLOR,
   isValidHexColor,
-  useWebhookBuilder
+  useWebhookBuilder,
+  embedHasRenderableContent
 } from '@/hooks/useWebhookBuilder'
 import SavedWebhooksManager from '@/components/SavedWebhooksManager'
 import WebhookTemplates from '@/components/WebhookTemplates'
@@ -59,19 +62,51 @@ export default function WebhookPage() {
   const colorPickerValue =
     activeEmbed && isValidHexColor(activeEmbed.color) ? activeEmbed.color : DEFAULT_COLOR
 
+  const hasUnsavedData = useCallback(() => {
+    return (
+      webhookUrl.trim() ||
+      username.trim() ||
+      avatarUrl.trim() ||
+      message.trim() ||
+      threadName.trim() ||
+      files.length > 0 ||
+      embedsData.some(embedHasRenderableContent)
+    )
+  }, [webhookUrl, username, avatarUrl, message, threadName, files, embedsData])
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (hasUnsavedData()) {
+        event.preventDefault()
+        event.returnValue = ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedData])
+
   return (
     <div className="min-h-screen bg-gray-900 text-white py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full flex flex-col lg:flex-row gap-8">
         <div className="lg:w-3/5 w-full">
           <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-lg p-6 sm:p-8 fade-in">
             <div className="text-center mb-8">
-               <h1 className="text-3xl sm:text-4xl font-bold text-indigo-400">Discord Webhook Sender</h1>
-               <p className="text-gray-400 mt-2">A comprehensive tool to build and send messages via webhooks.</p>
-             </div>
+              <h1 className="text-3xl sm:text-4xl font-bold text-indigo-400">Discord Webhook Sender</h1>
+              <p className="text-gray-400 mt-2">A comprehensive tool to build and send messages via webhooks.</p>
+              <div className="mt-4">
+                <Link
+                  href="/webhook/schedule-manager"
+                  className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md"
+                >
+                  Schedule Webhook
+                </Link>
+              </div>
+            </div>
 
-             <div className="mb-8">
-               <WebhookTemplates builder={builder} />
-             </div>
+            <div className="mb-8">
+              <WebhookTemplates builder={builder} />
+            </div>
 
              <form onSubmit={handleSubmit} className="space-y-4">
               <div className="border-b border-gray-700 pb-4">
