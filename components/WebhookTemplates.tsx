@@ -80,7 +80,7 @@ const templates: Template[] = [
           url: 'https://discord.com/developers/docs/resources/webhook',
           description: 'This comprehensive embed demonstrates all available features: author, title, description, color, image, thumbnail, fields, and footer with timestamp.',
           color: '#FF6B6B',
-          imageUrl: 'https://media1.tenor.com/m/FLfJEQ0Q8wQAAAAd/rigby-freaky.gif',
+          imageUrl: 'https://i.kym-cdn.com/entries/icons/original/000/054/270/rigrig.jpg',
           thumbnailUrl: 'https://i.imgur.com/4M34hi2.png',
           footerText: 'Created with Webhook Sender',
           footerIconUrl: 'https://i.imgur.com/fKL31aD.png',
