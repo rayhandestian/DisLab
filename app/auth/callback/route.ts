@@ -1,5 +1,6 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 
 const sanitizeBaseUrl = (url: string) => {
   const trimmed = url.trim()
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
-    const supabase = createServerSupabaseClient()
+    const supabase = createRouteHandlerClient({ cookies })
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       const baseUrl = resolveBaseUrl(request, origin)
