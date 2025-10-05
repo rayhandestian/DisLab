@@ -125,6 +125,12 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
 
     setLoading(true)
     try {
+      // For custom cron, use current time if no schedule time set
+      let scheduleTime = data.scheduleTime
+      if (recurrencePattern === 'custom' && !scheduleTime) {
+        scheduleTime = new Date().toISOString()
+      }
+
       // Create snapshot from form data
       const snapshot = {
         content: data.message,
@@ -142,7 +148,7 @@ export default function ScheduleForm({ onSuccess }: { onSuccess: () => void }) {
         userId: user.id,
         name: data.name,
         webhookUrl: data.webhookUrl,
-        scheduleTime: data.scheduleTime,
+        scheduleTime,
         snapshot,
         files: [],
         isRecurring,
