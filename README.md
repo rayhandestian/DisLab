@@ -16,12 +16,18 @@ A modern web application for scheduling and sending Discord webhooks with user a
 
 ### 2. Environment Variables
 
-Update `.env.local` with your Supabase credentials:
+Update `.env.local` with your Supabase credentials and the canonical site URL you want users redirected to after OAuth:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SITE_URL=https://your-domain.com
 ```
+
+> **Notes**
+> - `NEXT_PUBLIC_SITE_URL` must include the protocol (`https://`) and should not end with a trailing slash. This value is used for Supabase OAuth redirects in production.
+> - When running locally you can omit `NEXT_PUBLIC_SITE_URL`; the app will fall back to `http://localhost:3000`.
+> - On Vercel you can alternatively rely on the automatically provided `VERCEL_URL`, but setting `NEXT_PUBLIC_SITE_URL` explicitly is recommended to avoid surprises with preview URLs.
 
 ### 3. Database Schema
 
@@ -169,6 +175,7 @@ npm run dev
 3. Set environment variables in Vercel dashboard:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_SITE_URL` (e.g. `https://your-domain.com`)
 4. Deploy
 
 ### Supabase Cron Setup
