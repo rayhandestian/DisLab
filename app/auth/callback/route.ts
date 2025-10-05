@@ -42,8 +42,10 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
 
+  const supabase = createRouteHandlerClient({ cookies })
+
+  // If there's a code, try to exchange it for a session
   if (code) {
-    const supabase = createRouteHandlerClient({ cookies })
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       const baseUrl = resolveBaseUrl(request, origin)
@@ -51,6 +53,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // If no code, check if there's already a session (Supabase may have set cookies)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) {
+    const baseUrl = resolveBaseUrl(request, origin)
+    return NextResponse.redirect(buildRedirectUrl(baseUrl, next))
+  }
+
+  // No code and no session, redirect to error
   const baseUrl = resolveBaseUrl(request, origin)
   return NextResponse.redirect(buildRedirectUrl(baseUrl, '/auth/auth-code-error'))
 }

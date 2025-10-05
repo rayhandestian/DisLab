@@ -11,10 +11,10 @@ A modern web application for scheduling and sending Discord webhooks with user a
 3. Add your Discord application credentials:
    - Create a Discord app at [discord.com/developers](https://discord.com/developers)
    - Copy Client ID and Client Secret to Supabase
-   - Set redirect URI to: `https://your-domain.com/auth/callback`
+   - Set redirect URI to: `https://your-supabase-project.supabase.co/auth/v1/callback` (Supabase's internal callback URL - replace `your-supabase-project` with your actual Supabase project ID)
 4. In Supabase **Authentication → URL Configuration**:
    - Set **Site URL** to `https://your-domain.com`
-   - Add `https://your-domain.com/auth/callback` (and any preview URLs you use) to **Additional Redirect URLs**
+   - Add `https://your-domain.com/auth/callback` to **Additional Redirect URLs**
    - Keep `http://localhost:3000/auth/callback` for local development
 5. Copy your Supabase URL and anon key from Project Settings > API
 
