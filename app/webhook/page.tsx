@@ -11,7 +11,6 @@ import {
   isValidHexColor,
   useWebhookBuilder,
 } from '@/hooks/useWebhookBuilder'
-import ScheduleManager from '@/components/webhook/ScheduleManager'
 import SavedWebhooksManager from '@/components/SavedWebhooksManager'
 
 export default function WebhookPage() {
@@ -734,11 +733,6 @@ export default function WebhookPage() {
 
           {/* Saved Webhooks Manager Card */}
           <SavedWebhooksManager builder={builder} />
-
-          {/* Schedule Manager Card */}
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-lg p-6 sm:p-8 mt-8 fade-in">
-            <ScheduleManager builder={builder} />
-          </div>
         </div>
 
         <div className="lg:w-2/5 w-full">

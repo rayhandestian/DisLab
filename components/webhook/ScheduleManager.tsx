@@ -19,16 +19,11 @@ import {
 import { fetchSavedWebhooks, type SavedWebhookRow } from '@/lib/savedWebhookService'
 import {
   toLocalISOString,
-  type WebhookBuilderApi,
 } from '@/hooks/useWebhookBuilder'
-
-type ScheduleManagerProps = {
-  builder: WebhookBuilderApi
-}
 
 const defaultScheduleTimeValue = () => toLocalISOString(new Date(Date.now() + 60 * 60 * 1000))
 
-export default function ScheduleManager({ builder }: ScheduleManagerProps) {
+export default function ScheduleManager() {
   const supabase = useSupabase()
   const { user } = useUser()
 

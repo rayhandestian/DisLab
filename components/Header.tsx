@@ -70,6 +70,12 @@ export default function Header() {
             >
               Webhook Sender
             </Link>
+            <Link
+              href="/webhook/schedule-manager"
+              className="text-gray-300 hover:text-white transition-colors duration-150 text-sm font-medium"
+            >
+              Schedule Manager
+            </Link>
           </nav>
 
           {/* User Section */}
