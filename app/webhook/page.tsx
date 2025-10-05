@@ -348,7 +348,6 @@ export default function WebhookPage() {
                 </div>
               </div>
       
-              <ScheduleManager builder={builder} />
 
               <div className="border-b border-gray-700 py-2">
                 <button
