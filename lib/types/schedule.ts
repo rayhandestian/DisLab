@@ -6,20 +6,23 @@ export type RecurrencePattern = 'once' | 'daily' | 'weekly' | 'monthly' | 'custo
 
 // Configuration for different recurrence patterns
 export type RecurrenceConfig = {
-  // For daily pattern
-  time?: string // "HH:mm" format (24-hour)
-  
-  // For weekly pattern
-  days?: number[] // 0-6, where 0 is Sunday, 1 is Monday, etc.
-  
-  // For monthly pattern
-  day?: number // 1-31, day of month
-  
-  // For custom pattern
-  cronExpression?: string // Standard cron format
-  
-  // Common fields
-  timezone?: string // IANA timezone (e.g., "Asia/Jakarta")
+   // For once pattern
+   datetime?: string // ISO 8601 datetime string for one-time execution
+
+   // For daily pattern
+   time?: string // "HH:mm" format (24-hour)
+
+   // For weekly pattern
+   days?: number[] // 0-6, where 0 is Sunday, 1 is Monday, etc.
+
+   // For monthly pattern
+   day?: number // 1-31, day of month
+
+   // For custom pattern
+   cronExpression?: string // Standard cron format
+
+   // Common fields
+   timezone?: string // IANA timezone (e.g., "Asia/Jakarta")
 }
 
 // Extended schedule row type

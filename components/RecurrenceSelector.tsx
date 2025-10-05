@@ -157,21 +157,47 @@ export default function RecurrenceSelector({
       )}
       
       {/* Pattern-Specific Fields */}
+      {pattern === 'once' && (
+        <OnceConfig config={config} onChange={onConfigChange} />
+      )}
+
       {pattern === 'daily' && (
         <DailyConfig config={config} onChange={onConfigChange} />
       )}
-      
+
       {pattern === 'weekly' && (
         <WeeklyConfig config={config} onChange={onConfigChange} />
       )}
-      
+
       {pattern === 'monthly' && (
         <MonthlyConfig config={config} onChange={onConfigChange} />
       )}
-      
+
       {pattern === 'custom' && (
         <CustomConfig config={config} onChange={onConfigChange} />
       )}
+    </div>
+  )
+}
+
+// Once configuration component
+function OnceConfig({ config, onChange }: { config: RecurrenceConfig, onChange: (c: RecurrenceConfig) => void }) {
+  return (
+    <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
+      <div className="flex items-center gap-2 mb-3">
+        <Clock className="w-4 h-4 text-indigo-400" />
+        <label className="form-label mb-0">One-time Schedule</label>
+      </div>
+      <div>
+        <label className="text-sm text-gray-400 mb-2 block">Schedule Time</label>
+        <input
+          type="datetime-local"
+          value={config.datetime || ''}
+          onChange={(e) => onChange({ ...config, datetime: e.target.value })}
+          className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+        />
+        <p className="text-xs text-gray-500 mt-1">Select the exact date and time for this one-time execution</p>
+      </div>
     </div>
   )
 }

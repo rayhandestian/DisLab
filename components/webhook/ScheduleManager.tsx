@@ -42,10 +42,7 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
   const [selectedSavedWebhook, setSelectedSavedWebhook] = useState<SavedWebhookRow | null>(null)
   const [scheduleName, setScheduleName] = useState('')
   const [webhookUrl, setWebhookUrl] = useState('')
-  const [scheduleTime, setScheduleTime] = useState('')
-
-  // Recurrence state
-  const [isRecurring, setIsRecurring] = useState(false)
+  // Recurrence state - always shown, default to 'once'
   const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>('once')
   const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>({})
   const [maxExecutions, setMaxExecutions] = useState<number | undefined>(undefined)
@@ -92,8 +89,6 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     setSelectedSavedWebhook(null)
     setScheduleName('')
     setWebhookUrl('')
-    setScheduleTime('')
-    setIsRecurring(false)
     setRecurrencePattern('once')
     setRecurrenceConfig({})
     setMaxExecutions(undefined)
@@ -115,20 +110,20 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
       return false
     }
 
-    if (!scheduleTime) {
-      toast.error('Select a schedule time')
-      return false
-    }
-
-    const scheduledDate = new Date(scheduleTime)
-    if (Number.isNaN(scheduledDate.getTime())) {
-      toast.error('Invalid schedule time')
-      return false
-    }
-
-    if (scheduledDate.getTime() < Date.now() - 60 * 1000) {
-      toast.error('Schedule time must be in the future')
-      return false
+    if (recurrencePattern === 'once') {
+      if (!recurrenceConfig.datetime) {
+        toast.error('Select a schedule time')
+        return false
+      }
+      const scheduledDate = new Date(recurrenceConfig.datetime)
+      if (Number.isNaN(scheduledDate.getTime())) {
+        toast.error('Invalid schedule time')
+        return false
+      }
+      if (scheduledDate.getTime() < Date.now() - 60 * 1000) {
+        toast.error('Schedule time must be in the future')
+        return false
+      }
     }
 
     return true
@@ -140,6 +135,11 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
 
     setSaving(true)
     try {
+      const isRecurring = recurrencePattern !== 'once'
+      const scheduleTime = recurrencePattern === 'once'
+        ? new Date(recurrenceConfig.datetime!)
+        : new Date() // For recurring, use current time as base
+
       if (selectedSchedule) {
         await updateSchedule({
           supabase,
@@ -200,9 +200,25 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     }
   }
 
+  const handleDeleteScheduleDirect = async (scheduleId: string) => {
+    if (!user) return
+
+    setDeleting(true)
+    try {
+      await deleteSchedule({ supabase, scheduleId, userId: user.id })
+      toast.success('Schedule deleted')
+      await loadSchedules()
+    } catch (error) {
+      console.error('Error deleting schedule:', error)
+      toast.error('Failed to delete schedule')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const handleNewSchedule = () => {
     resetEditorState()
-    setScheduleTime(defaultScheduleTimeValue())
+    setRecurrenceConfig({ datetime: defaultScheduleTimeValue() })
     toast.success('Creating new schedule')
   }
 
@@ -213,10 +229,15 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
       setSelectedSchedule(schedule)
       setScheduleName(schedule.name)
       setWebhookUrl(schedule.webhook_url)
-      setScheduleTime(toLocalISOString(new Date(schedule.schedule_time)))
-      setIsRecurring(schedule.is_recurring || false)
       setRecurrencePattern(schedule.recurrence_pattern || 'once')
-      setRecurrenceConfig(schedule.recurrence_config || {})
+
+      // Set recurrence config based on pattern
+      if (schedule.recurrence_pattern === 'once') {
+        setRecurrenceConfig({ datetime: toLocalISOString(new Date(schedule.schedule_time)) })
+      } else {
+        setRecurrenceConfig(schedule.recurrence_config || {})
+      }
+
       setMaxExecutions(schedule.max_executions)
 
       // Find and set the saved webhook
@@ -232,11 +253,6 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     }
   }
 
-  useEffect(() => {
-    if (!selectedSchedule) {
-      setScheduleTime(prev => prev || defaultScheduleTimeValue())
-    }
-  }, [selectedSchedule])
 
   if (!user) {
     return (
@@ -339,62 +355,51 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
             </p>
           </div>
 
-          {/* Recurring toggle */}
-          <div className="flex items-center gap-3">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isRecurring}
-                onChange={(e) => {
-                  setIsRecurring(e.target.checked)
-                  if (!e.target.checked) {
-                    setRecurrencePattern('once')
-                    setRecurrenceConfig({})
-                  }
-                }}
-                className="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
-              />
-              <span className="ml-2 text-white font-semibold">Recurring Schedule</span>
-            </label>
-          </div>
-
-          {/* Recurrence selector */}
-          {isRecurring && (
-            <RecurrenceSelector
-              pattern={recurrencePattern}
-              config={recurrenceConfig}
-              onPatternChange={setRecurrencePattern}
-              onConfigChange={setRecurrenceConfig}
-            />
-          )}
-
-          <div>
-            <label className="form-label">
-              {isRecurring ? 'Start Time' : 'Schedule Time'}
-            </label>
-            <input
-              type="datetime-local"
-              value={scheduleTime}
-              onChange={event => setScheduleTime(event.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-            <p className="form-hint mt-1">
-              Uses your local timezone. {isRecurring ? 'First execution will be at this time.' : 'Cron runs every minute via Supabase.'}
-            </p>
-          </div>
+          {/* Recurrence selector - always shown */}
+          <RecurrenceSelector
+            pattern={recurrencePattern}
+            config={recurrenceConfig}
+            onPatternChange={setRecurrencePattern}
+            onConfigChange={setRecurrenceConfig}
+          />
 
           {/* Max executions for recurring */}
-          {isRecurring && (
+          {recurrencePattern !== 'once' && (
             <div>
               <label className="form-label">Max Executions (Optional)</label>
-              <input
-                type="number"
-                min="1"
-                value={maxExecutions || ''}
-                onChange={(e) => setMaxExecutions(e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="Leave empty for unlimited"
-                className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              />
+              <div className="space-y-2">
+                <input
+                  type="number"
+                  min="1"
+                  value={maxExecutions || ''}
+                  onChange={(e) => setMaxExecutions(e.target.value ? parseInt(e.target.value) : undefined)}
+                  placeholder="Leave empty for unlimited"
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMaxExecutions(10)}
+                    className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded"
+                  >
+                    10
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMaxExecutions(50)}
+                    className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded"
+                  >
+                    50
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMaxExecutions(undefined)}
+                    className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded"
+                  >
+                    Unlimited
+                  </button>
+                </div>
+              </div>
               <p className="form-hint mt-1">
                 Schedule will stop after this many executions
               </p>
@@ -518,7 +523,7 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
                     )}
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-gray-700/50">
+                  <div className="mt-6 pt-4 border-t border-gray-700/50 space-y-3">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -531,6 +536,21 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       Edit Schedule
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (confirm(`Delete schedule "${schedule.name}"?`)) {
+                          handleDeleteScheduleDirect(schedule.id)
+                        }
+                      }}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-150 text-base flex items-center justify-center gap-3"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Schedule
                     </button>
                   </div>
                 </div>
