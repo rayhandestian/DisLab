@@ -321,20 +321,30 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
   const hasRemovedFiles = removedFiles.length > 0
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 sm:p-8 mt-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-indigo-400">Schedule Webhooks</h2>
-          <p className="text-gray-400">
-            Save this configuration to run later via Supabase cron. Files: {totalFilesCount}
-          </p>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold text-indigo-400">Schedule Manager</h2>
+            <p className="text-gray-400 text-base">
+              Automate webhook delivery • Files: {totalFilesCount}
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={handleNewSchedule}
-            className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+            className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl transition duration-150 flex items-center gap-3 text-base"
           >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
             New Schedule
           </button>
           {selectedSchedule && (
@@ -342,8 +352,11 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               type="button"
               onClick={handleDeleteSchedule}
               disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+              className="bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white font-semibold py-3 px-6 rounded-xl transition duration-150 flex items-center gap-3 text-base"
             >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
               {deleting ? 'Deleting...' : 'Delete'}
             </button>
           )}
@@ -515,84 +528,106 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold text-gray-200 mb-3">
-          Saved Schedules
-        </h3>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-6 h-6 bg-gray-700 rounded-md flex items-center justify-center">
+            <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-200">
+            Saved Schedules ({schedules.length})
+          </h3>
+        </div>
+
         {loadingSchedules ? (
-          <p className="text-sm text-gray-400">Loading schedules...</p>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+            <span className="ml-3 text-gray-400">Loading schedules...</span>
+          </div>
         ) : schedules.length === 0 ? (
-          <p className="text-sm text-gray-400">
-            No schedules yet. Configure your webhook above and create your first schedule.
-          </p>
+          <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-700/50 border-dashed">
+            <svg className="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-gray-400 mb-2">No schedules yet</p>
+            <p className="text-sm text-gray-500">Configure your webhook above and create your first schedule</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead>
-                <tr className="bg-gray-900/60 text-left text-xs uppercase tracking-wider text-gray-400">
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Scheduled For</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
-                {schedules.map(schedule => {
-                  const scheduledDate = new Date(schedule.next_execution_at || schedule.schedule_time)
-                  const scheduledLabel = scheduledDate.toLocaleString()
-                  const isRecurringSchedule = schedule.is_recurring
-                  const executionInfo = isRecurringSchedule
-                    ? `${schedule.execution_count || 0} executions`
-                    : null
-                  
-                  return (
-                    <tr key={schedule.id} className="text-sm text-gray-200">
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-white">
-                          {schedule.name}
-                          {isRecurringSchedule && (
-                            <span className="ml-2 text-xs bg-indigo-600 text-white px-2 py-0.5 rounded">
-                              Recurring
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-400">{schedule.webhook_url}</div>
-                        {executionInfo && (
-                          <div className="text-xs text-gray-500 mt-1">{executionInfo}</div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            {schedules.map(schedule => {
+              const scheduledDate = new Date(schedule.next_execution_at || schedule.schedule_time)
+              const scheduledLabel = scheduledDate.toLocaleString()
+              const isRecurringSchedule = schedule.is_recurring
+              const executionInfo = isRecurringSchedule
+                ? `${schedule.execution_count || 0} executions`
+                : null
+
+              return (
+                <div
+                  key={schedule.id}
+                  className="bg-gray-900/40 border border-gray-700/50 rounded-xl p-6 hover:bg-gray-900/60 transition-all duration-200 cursor-pointer group"
+                  onClick={() => handleSelectSchedule(schedule.id)}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-white truncate">{schedule.name}</h4>
+                        {isRecurringSchedule && (
+                          <span className="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full flex-shrink-0">
+                            Recurring
+                          </span>
                         )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div>{scheduledLabel}</div>
-                        {isRecurringSchedule && schedule.recurrence_pattern && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            Pattern: {schedule.recurrence_pattern}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            schedule.is_active ? 'bg-green-900/60 text-green-300' : 'bg-gray-800 text-gray-400'
-                          }`}
-                        >
-                          {schedule.is_active ? 'Active' : 'Completed'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectSchedule(schedule.id)}
-                            className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md transition"
-                          >
-                            Edit
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                      </div>
+                      <p className="text-xs text-gray-400 truncate">{schedule.webhook_url}</p>
+                      {executionInfo && (
+                        <p className="text-xs text-gray-500 mt-1">{executionInfo}</p>
+                      )}
+                    </div>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold flex-shrink-0 ${
+                        schedule.is_active ? 'bg-green-900/60 text-green-300' : 'bg-gray-800 text-gray-400'
+                      }`}
+                    >
+                      {schedule.is_active ? 'Active' : 'Completed'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="truncate">{scheduledLabel}</span>
+                    </div>
+
+                    {isRecurringSchedule && schedule.recurrence_pattern && (
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="capitalize">{schedule.recurrence_pattern}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-gray-700/50">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSelectSchedule(schedule.id)
+                      }}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-150 text-base flex items-center justify-center gap-3 group-hover:bg-indigo-700"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Schedule
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

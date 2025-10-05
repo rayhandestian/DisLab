@@ -27,20 +27,22 @@ body {
 #preview-container .prose blockquote { border-left: 4px solid #4f545c; padding-left: 1em; margin-left: 0; color: #b9bbbe; }
 
 .section-toggle .chevron {
-  transition: transform 0.2s ease-in-out;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .section-toggle.open .chevron {
   transform: rotate(180deg);
 }
 .section-content {
-  transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   max-height: 0;
   opacity: 0;
+  transform: translateY(-8px);
 }
 .section-content.open {
   max-height: 5000px;
   opacity: 1;
+  transform: translateY(0);
 }
 .section-title {
   font-size: 1.25rem;
@@ -82,4 +84,52 @@ body {
 
 .slide-in-from-top-2 {
   animation: slideInFromTop 0.2s ease-out;
+}
+
+/* Enhanced animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Better focus states */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5);
+}
+
+/* Smooth transitions for interactive elements */
+.interactive-element {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-element:hover {
+  transform: translateY(-1px);
+}
+
+.interactive-element:active {
+  transform: translateY(0);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .section-content.open {
+    max-height: 3000px;
+  }
+
+  .mobile-stack {
+    flex-direction: column;
+  }
+
+  .mobile-full {
+    width: 100%;
+  }
 }
