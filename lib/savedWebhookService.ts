@@ -34,21 +34,26 @@ export type UploadWebhookFilesParams = {
 }
 
 export const uploadWebhookFiles = async ({ supabase, userId, webhookId, files }: UploadWebhookFilesParams): Promise<StoredFileAttachment[]> => {
+  console.log('uploadWebhookFiles called with files:', files?.length || 0)
   if (!files || files.length === 0) return []
 
   const uploaded: StoredFileAttachment[] = []
   try {
     for (const [index, file] of files.entries()) {
+      console.log(`Uploading file ${index}: ${file.name}, size: ${file.size}, type: ${file.type}`)
       const storagePath = buildStoragePath(userId, webhookId, index, file.name)
+      console.log('Storage path:', storagePath)
       const { error } = await supabase.storage.from(WEBHOOK_FILES_BUCKET).upload(storagePath, file, {
         cacheControl: '3600',
         upsert: false,
       })
 
       if (error) {
+        console.error('Upload error:', error)
         throw error
       }
 
+      console.log('Upload successful for file:', file.name)
       uploaded.push({
         name: file.name,
         size: file.size,
@@ -57,9 +62,12 @@ export const uploadWebhookFiles = async ({ supabase, userId, webhookId, files }:
         originalIndex: index,
       })
     }
+    console.log('All files uploaded successfully')
     return uploaded
   } catch (error) {
+    console.error('Error in uploadWebhookFiles:', error)
     if (uploaded.length > 0) {
+      console.log('Cleaning up uploaded files due to error')
       void supabase.storage.from(WEBHOOK_FILES_BUCKET).remove(uploaded.map(file => file.storagePath))
     }
     throw error
@@ -78,6 +86,7 @@ export const createSavedWebhook = async ({
   snapshot,
   files,
 }: CreateSavedWebhookParams): Promise<SavedWebhookRow> => {
+  console.log('createSavedWebhook called with files:', files?.length || 0)
   // Check limit: max 10 saved webhooks per user
   const { count, error: countError } = await supabase
     .from(SAVED_WEBHOOKS_TABLE)
@@ -85,6 +94,7 @@ export const createSavedWebhook = async ({
     .eq('user_id', userId)
 
   if (countError) {
+    console.error('Count error:', countError)
     throw countError
   }
 
@@ -93,9 +103,11 @@ export const createSavedWebhook = async ({
   }
 
   const webhookId = generateId()
+  console.log('Generated webhookId:', webhookId)
   const uploadedFiles = files?.length
     ? await uploadWebhookFiles({ supabase, userId, webhookId, files })
     : []
+  console.log('Uploaded files:', uploadedFiles.length)
 
   const snapshotWithFiles: BuilderStateSnapshot = {
     ...snapshot,
@@ -103,6 +115,7 @@ export const createSavedWebhook = async ({
   }
 
   const messagePayload = createWebhookMessagePayload(snapshotWithFiles)
+  console.log('Message payload created')
 
   const { data, error } = await supabase
     .from(SAVED_WEBHOOKS_TABLE)
@@ -118,12 +131,14 @@ export const createSavedWebhook = async ({
     .single()
 
   if (error) {
+    console.error('Insert error:', error)
     if (uploadedFiles.length > 0) {
       void removeWebhookFiles(supabase, uploadedFiles)
     }
     throw error
   }
 
+  console.log('Webhook saved successfully')
   return data as SavedWebhookRow
 }
 
