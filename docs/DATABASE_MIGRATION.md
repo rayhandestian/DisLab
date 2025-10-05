@@ -140,9 +140,8 @@ ORDER BY s.next_execution_at ASC;
 -- Grant access to authenticated users
 GRANT SELECT ON public.active_schedules TO authenticated;
 
--- Step 9: Add RLS policy for the view
-CREATE POLICY "Users can view own active schedules" ON public.active_schedules
-  FOR SELECT USING (auth.uid() = user_id);
+-- Note: Views don't support RLS policies directly.
+-- Security is inherited from the underlying schedules table RLS policies.
 ```
 
 ## Rollback SQL (if needed)
@@ -153,7 +152,8 @@ If you need to rollback this migration:
 -- WARNING: This will remove recurring schedule functionality
 -- and delete the new columns. Backup your data first!
 
--- Drop view
+-- Revoke grants and drop view
+REVOKE SELECT ON public.active_schedules FROM authenticated;
 DROP VIEW IF EXISTS public.active_schedules;
 
 -- Drop triggers and functions
