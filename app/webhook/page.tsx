@@ -12,6 +12,7 @@ import {
   useWebhookBuilder,
 } from '@/hooks/useWebhookBuilder'
 import SavedWebhooksManager from '@/components/SavedWebhooksManager'
+import WebhookTemplates from '@/components/WebhookTemplates'
 
 export default function WebhookPage() {
   const builder = useWebhookBuilder()
@@ -198,11 +199,15 @@ export default function WebhookPage() {
         <div className="lg:w-3/5 w-full">
           <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-lg p-6 sm:p-8 fade-in">
             <div className="text-center mb-8">
-              <h1 className="text-3xl sm:text-4xl font-bold text-indigo-400">Discord Webhook Sender</h1>
-              <p className="text-gray-400 mt-2">A comprehensive tool to build and send messages via webhooks.</p>
-            </div>
+               <h1 className="text-3xl sm:text-4xl font-bold text-indigo-400">Discord Webhook Sender</h1>
+               <p className="text-gray-400 mt-2">A comprehensive tool to build and send messages via webhooks.</p>
+             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+             <div className="mb-8">
+               <WebhookTemplates builder={builder} />
+             </div>
+
+             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="border-b border-gray-700 pb-4">
                 <label className="form-label">Webhook URL</label>
                 <div className="flex flex-col sm:flex-row gap-2">
