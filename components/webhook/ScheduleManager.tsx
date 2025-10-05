@@ -24,19 +24,6 @@ import {
 
 const defaultScheduleTimeValue = () => toLocalISOString(new Date(Date.now() + 60 * 60 * 1000))
 
-const censorWebhookUrl = (url: string): string => {
-  if (!url) return url
-  // For Discord webhook URLs, censor the webhook ID and token
-  const match = url.match(/^https:\/\/discord\.com\/api\/webhooks\/(\d+)\//)
-  if (match) {
-    const webhookId = match[1]
-    const prefix = `https://discord.com/api/webhooks/${webhookId.substring(0, 4)}****`
-    const suffix = url.split('/').pop()?.substring(0, 4) + '****' || ''
-    return `${prefix}/${suffix}`
-  }
-  return url
-}
-
 export default function ScheduleManager() {
   const supabase = useSupabase()
   const { user } = useUser()
@@ -333,13 +320,30 @@ export default function ScheduleManager() {
 
           <div>
             <label className="form-label">Webhook URL</label>
-            <input
-              type="url"
-              value={webhookUrl}
-              onChange={event => setWebhookUrl(event.target.value)}
-              placeholder="https://discord.com/api/webhooks/..."
-              className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={webhookUrl}
+                onChange={event => setWebhookUrl(event.target.value)}
+                placeholder="https://discord.com/api/webhooks/..."
+                className="flex-1 bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (webhookUrl.trim()) {
+                    navigator.clipboard.writeText(webhookUrl)
+                    toast.success('Webhook URL copied to clipboard')
+                  } else {
+                    toast.error('No webhook URL to copy')
+                  }
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150"
+                title="Copy webhook URL"
+              >
+                Copy
+              </button>
+            </div>
           </div>
 
           <div>
@@ -504,7 +508,7 @@ export default function ScheduleManager() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 truncate">{censorWebhookUrl(schedule.webhook_url)}</p>
+                      <p className="text-xs text-gray-400 truncate">{schedule.webhook_url}</p>
                       {executionInfo && (
                         <p className="text-xs text-gray-500 mt-1">{executionInfo}</p>
                       )}

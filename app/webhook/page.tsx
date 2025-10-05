@@ -8,6 +8,7 @@ import {
 import SavedWebhooksManager from '@/components/SavedWebhooksManager'
 import WebhookTemplates from '@/components/WebhookTemplates'
 import WebhookPreview from '@/components/WebhookPreview'
+import toast from 'react-hot-toast'
 
 export default function WebhookPage() {
   const builder = useWebhookBuilder()
@@ -83,6 +84,21 @@ export default function WebhookPage() {
                     placeholder="Enter your Discord webhook URL"
                     className="flex-grow bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3 transition duration-150"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (webhookUrl.trim()) {
+                        navigator.clipboard.writeText(webhookUrl)
+                        toast.success('Webhook URL copied to clipboard')
+                      } else {
+                        toast.error('No webhook URL to copy')
+                      }
+                    }}
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150 shadow-md"
+                    title="Copy webhook URL"
+                  >
+                    Copy
+                  </button>
                   <button
                     type="button"
                     onClick={clearWebhook}
