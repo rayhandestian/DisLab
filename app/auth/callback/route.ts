@@ -42,25 +42,56 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
 
+  console.log('[AUTH CALLBACK] Received request:', {
+    url: request.url,
+    code: code ? 'present' : 'missing',
+    next,
+    origin,
+    allParams: Object.fromEntries(searchParams.entries())
+  })
+
   const supabase = createRouteHandlerClient({ cookies })
 
   // If there's a code, try to exchange it for a session
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
+    console.log('[AUTH CALLBACK] Attempting to exchange code for session...')
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (error) {
+      console.error('[AUTH CALLBACK] Error exchanging code:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      })
+    } else {
+      console.log('[AUTH CALLBACK] Successfully exchanged code, session:', {
+        hasSession: !!data.session,
+        userId: data.session?.user?.id
+      })
       const baseUrl = resolveBaseUrl(request, origin)
-      return NextResponse.redirect(buildRedirectUrl(baseUrl, next))
+      const redirectUrl = buildRedirectUrl(baseUrl, next)
+      console.log('[AUTH CALLBACK] Redirecting to:', redirectUrl)
+      return NextResponse.redirect(redirectUrl)
     }
+  } else {
+    console.log('[AUTH CALLBACK] No code parameter found')
   }
 
   // If no code, check if there's already a session (Supabase may have set cookies)
+  console.log('[AUTH CALLBACK] Checking for existing session...')
   const { data: { session } } = await supabase.auth.getSession()
   if (session) {
+    console.log('[AUTH CALLBACK] Found existing session, userId:', session.user?.id)
     const baseUrl = resolveBaseUrl(request, origin)
-    return NextResponse.redirect(buildRedirectUrl(baseUrl, next))
+    const redirectUrl = buildRedirectUrl(baseUrl, next)
+    console.log('[AUTH CALLBACK] Redirecting to:', redirectUrl)
+    return NextResponse.redirect(redirectUrl)
   }
 
   // No code and no session, redirect to error
+  console.error('[AUTH CALLBACK] No code and no session found, redirecting to error page')
   const baseUrl = resolveBaseUrl(request, origin)
-  return NextResponse.redirect(buildRedirectUrl(baseUrl, '/auth/auth-code-error'))
+  const errorUrl = buildRedirectUrl(baseUrl, '/auth/auth-code-error')
+  console.log('[AUTH CALLBACK] Error redirect URL:', errorUrl)
+  return NextResponse.redirect(errorUrl)
 }
