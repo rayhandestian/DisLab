@@ -16,6 +16,8 @@ import type {
   UpdateScheduleParams as UpdateScheduleParamsType,
 } from '@/lib/types/schedule'
 
+import { getSavedWebhookById } from '@/lib/savedWebhookService'
+
 export type { StoredFileAttachment } from '@/lib/webhookSerializer'
 export type { ScheduleRow, RecurrencePattern, RecurrenceConfig } from '@/lib/types/schedule'
 
@@ -83,32 +85,32 @@ export const createSchedule = async ({
   userId,
   name,
   webhookUrl,
+  savedWebhookId,
   scheduleTime,
-  snapshot,
-  files,
   isRecurring = false,
   recurrencePattern = 'once',
   recurrenceConfig,
   maxExecutions,
 }: CreateScheduleParams): Promise<ScheduleRowType> => {
-  const scheduleId = generateId()
-  const uploadedFiles = files?.length
-    ? await uploadScheduleFiles({ supabase, userId, scheduleId, files })
-    : []
+  // Check limit: max 3 active schedules per user
+  const { count, error: countError } = await supabase
+    .from(SCHEDULES_TABLE)
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_active', true)
 
-  const snapshotWithFiles: BuilderStateSnapshot = {
-    ...snapshot,
-    files: uploadedFiles,
+  if (countError) {
+    throw countError
   }
 
-  const insertPayload: ScheduleInsertPayload = createScheduleInsertPayload({
-    userId,
-    name,
-    webhookUrl,
-    scheduleTime,
-    snapshot: snapshotWithFiles,
-    files: uploadedFiles,
-  })
+  if (count && count >= 3) {
+    throw new Error('Maximum 3 active schedules allowed per user')
+  }
+
+  const scheduleId = generateId()
+
+  // Fetch the saved webhook data
+  const savedWebhook = await getSavedWebhookById(supabase, userId, savedWebhookId)
 
   // Calculate next_execution_at
   // For recurring schedules with * * * * * (every minute), start immediately
@@ -127,7 +129,14 @@ export const createSchedule = async ({
     .from(SCHEDULES_TABLE)
     .insert({
       id: scheduleId,
-      ...insertPayload,
+      user_id: userId,
+      name,
+      webhook_url: webhookUrl,
+      saved_webhook_id: savedWebhookId,
+      message_data: savedWebhook.message_data,
+      builder_state: savedWebhook.builder_state,
+      files: savedWebhook.files,
+      schedule_time: typeof scheduleTime === 'string' ? new Date(scheduleTime).toISOString() : scheduleTime.toISOString(),
       is_recurring: isRecurring,
       recurrence_pattern: recurrencePattern,
       recurrence_config: recurrenceConfig,
@@ -140,9 +149,6 @@ export const createSchedule = async ({
     .single()
 
   if (error) {
-    if (uploadedFiles.length > 0) {
-      void removeScheduleFiles(supabase, uploadedFiles)
-    }
     throw error
   }
 
@@ -157,40 +163,29 @@ export const updateSchedule = async ({
   userId,
   name,
   webhookUrl,
+  savedWebhookId,
   scheduleTime,
-  snapshot,
-  retainedFiles = [],
-  filesToRemove = [],
-  newFiles,
   isActive = true,
   isRecurring = false,
   recurrencePattern = 'once',
   recurrenceConfig,
   maxExecutions,
 }: UpdateScheduleParams): Promise<ScheduleRowType> => {
-  const uploadedFiles = newFiles?.length
-    ? await uploadScheduleFiles({ supabase, userId, scheduleId, files: newFiles })
-    : []
-
-  const nextFiles = [...retainedFiles, ...uploadedFiles]
-
-  const snapshotWithFiles: BuilderStateSnapshot = {
-    ...snapshot,
-    files: nextFiles,
-  }
+  // Fetch the saved webhook data
+  const savedWebhook = await getSavedWebhookById(supabase, userId, savedWebhookId)
 
   const isoScheduleTime = typeof scheduleTime === 'string' ? new Date(scheduleTime).toISOString() : scheduleTime.toISOString()
-  const messagePayload = createWebhookMessagePayload(snapshotWithFiles)
 
   const { data, error } = await supabase
     .from(SCHEDULES_TABLE)
     .update({
       name,
       webhook_url: webhookUrl,
+      saved_webhook_id: savedWebhookId,
+      message_data: savedWebhook.message_data,
+      builder_state: savedWebhook.builder_state,
+      files: savedWebhook.files,
       schedule_time: isoScheduleTime,
-      message_data: messagePayload,
-      builder_state: snapshotWithFiles,
-      files: nextFiles,
       is_active: isActive,
       is_recurring: isRecurring,
       recurrence_pattern: recurrencePattern,
@@ -206,14 +201,7 @@ export const updateSchedule = async ({
     .single()
 
   if (error) {
-    if (uploadedFiles.length > 0) {
-      void removeScheduleFiles(supabase, uploadedFiles)
-    }
     throw error
-  }
-
-  if (filesToRemove.length > 0) {
-    void removeScheduleFiles(supabase, filesToRemove)
   }
 
   return data as ScheduleRowType

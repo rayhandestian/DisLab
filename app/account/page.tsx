@@ -63,6 +63,10 @@ export default function AccountPage() {
     return tier === 'paid' ? 100 : 3
   }
 
+  const getMaxSavedWebhooks = (tier: string) => {
+    return tier === 'paid' ? 50 : 10
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',

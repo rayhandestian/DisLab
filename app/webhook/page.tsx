@@ -12,6 +12,7 @@ import {
   useWebhookBuilder,
 } from '@/hooks/useWebhookBuilder'
 import ScheduleManager from '@/components/webhook/ScheduleManager'
+import SavedWebhooksManager from '@/components/SavedWebhooksManager'
 
 export default function WebhookPage() {
   const builder = useWebhookBuilder()
@@ -730,6 +731,9 @@ export default function WebhookPage() {
               )}
             </form>
           </div>
+
+          {/* Saved Webhooks Manager Card */}
+          <SavedWebhooksManager builder={builder} />
 
           {/* Schedule Manager Card */}
           <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-lg p-6 sm:p-8 mt-8 fade-in">

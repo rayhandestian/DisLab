@@ -28,27 +28,63 @@ export type ScheduleRow = {
   user_id: string
   name: string
   webhook_url: string
-  message_data: WebhookMessagePayload
-  builder_state?: BuilderStateSnapshot
-  files?: StoredFileAttachment[]
-  
+  saved_webhook_id?: string
+  message_data?: WebhookMessagePayload // Keep for backward compatibility
+  builder_state?: BuilderStateSnapshot // Keep for backward compatibility
+  files?: StoredFileAttachment[] // Keep for backward compatibility
+
   // Scheduling fields
   schedule_time: string // ISO 8601 timestamp
   is_recurring: boolean
   recurrence_pattern?: RecurrencePattern
   cron_expression?: string
   recurrence_config?: RecurrenceConfig
-  
+
   // Execution tracking
   is_active: boolean
   last_executed_at?: string
   next_execution_at?: string
   execution_count: number
   max_executions?: number
-  
+
   // Metadata
   created_at: string
   updated_at: string
+}
+
+// Saved webhook row type
+export type SavedWebhookRow = {
+  id: string
+  user_id: string
+  name: string
+  message_data?: WebhookMessagePayload
+  builder_state?: BuilderStateSnapshot
+  files?: StoredFileAttachment[]
+
+  // Metadata
+  created_at: string
+  updated_at: string
+}
+
+// Saved webhook creation parameters
+export type CreateSavedWebhookParams = {
+  supabase: SupabaseClient
+  userId: string
+  name: string
+  snapshot: BuilderStateSnapshot
+  files?: File[]
+}
+
+// Saved webhook update parameters
+export type UpdateSavedWebhookParams = {
+  supabase: SupabaseClient
+  webhookId: string
+  userId: string
+  name: string
+  snapshot: BuilderStateSnapshot
+  retainedFiles?: StoredFileAttachment[]
+  filesToRemove?: StoredFileAttachment[]
+  newFiles?: File[]
 }
 
 // Natural language parsing result
@@ -65,10 +101,9 @@ export type CreateScheduleParams = {
   userId: string
   name: string
   webhookUrl: string
+  savedWebhookId: string
   scheduleTime: Date | string
-  snapshot: BuilderStateSnapshot
-  files?: File[]
-  
+
   // Recurrence fields
   isRecurring?: boolean
   recurrencePattern?: RecurrencePattern
@@ -83,13 +118,10 @@ export type UpdateScheduleParams = {
   userId: string
   name: string
   webhookUrl: string
+  savedWebhookId: string
   scheduleTime: Date | string
-  snapshot: BuilderStateSnapshot
-  retainedFiles?: StoredFileAttachment[]
-  filesToRemove?: StoredFileAttachment[]
-  newFiles?: File[]
   isActive?: boolean
-  
+
   // Recurrence fields
   isRecurring?: boolean
   recurrencePattern?: RecurrencePattern

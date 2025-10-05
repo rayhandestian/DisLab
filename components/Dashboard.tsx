@@ -3,7 +3,6 @@
 import { useSupabase, useUser } from '@/hooks/useSupabase'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import ScheduleForm from './ScheduleForm'
 import ScheduleList from './ScheduleList'
 import Login from './Login'
 
@@ -15,7 +14,6 @@ export default function Dashboard() {
   const supabase = useSupabase()
   const { user } = useUser()
   const router = useRouter()
-  const [refresh, setRefresh] = useState(0)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [scheduleCount, setScheduleCount] = useState(0)
 
@@ -51,13 +49,13 @@ export default function Dashboard() {
     router.push('/')
   }
 
-  const handleScheduleCreated = () => {
-    setRefresh(prev => prev + 1)
-    fetchScheduleCount()
-  }
 
   const getMaxSchedules = (tier: string) => {
     return tier === 'paid' ? 100 : 3
+  }
+
+  const getMaxSavedWebhooks = (tier: string) => {
+    return tier === 'paid' ? 50 : 10
   }
 
   return (
@@ -84,8 +82,16 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-gray-800 rounded-2xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Send Webhook</h2>
-            <ScheduleForm onSuccess={handleScheduleCreated} />
+            <h2 className="text-xl font-semibold text-white mb-4">Create & Schedule Webhooks</h2>
+            <p className="text-gray-400 mb-4">
+              Go to the Webhook page to create webhook configurations and schedule them for automated delivery.
+            </p>
+            <button
+              onClick={() => router.push('/webhook')}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+            >
+              Go to Webhook Page
+            </button>
           </div>
 
           <div className="bg-gray-800 rounded-2xl p-6">
@@ -93,7 +99,7 @@ export default function Dashboard() {
               {user ? 'Your Schedules' : 'Login for Scheduling'}
             </h2>
             {user ? (
-              <ScheduleList refresh={refresh} />
+              <ScheduleList />
             ) : (
               <div className="text-center">
                 <p className="text-gray-400 mb-4">Login with Discord to schedule webhooks</p>

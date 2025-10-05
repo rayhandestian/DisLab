@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSupabase, useUser } from '@/hooks/useSupabase'
 import toast from 'react-hot-toast'
 
@@ -13,51 +13,18 @@ import {
   getScheduleById,
   updateSchedule,
   type ScheduleRow,
-  type StoredFileAttachment,
   type RecurrencePattern,
   type RecurrenceConfig,
 } from '@/lib/scheduleService'
+import { fetchSavedWebhooks, type SavedWebhookRow } from '@/lib/savedWebhookService'
 import {
-  hydrateBuilderState,
-  type BuilderStateSnapshot,
-  type HydratedBuilderState,
-} from '@/lib/webhookSerializer'
-import {
-  createDefaultEmbed,
-  embedHasRenderableContent,
   toLocalISOString,
-  type EmbedData,
   type WebhookBuilderApi,
 } from '@/hooks/useWebhookBuilder'
 
 type ScheduleManagerProps = {
   builder: WebhookBuilderApi
 }
-
-const hasBuilderContent = (builder: WebhookBuilderApi) =>
-  builder.message.trim().length > 0 ||
-  builder.files.length > 0 ||
-  builder.embedsData.some(embedHasRenderableContent)
-
-const cloneEmbedData = (embeds: EmbedData[]): EmbedData[] =>
-  embeds.map(embed => ({
-    ...embed,
-    fields: embed.fields.map(field => ({ ...field })),
-  }))
-
-const snapshotFromBuilder = (
-  builder: WebhookBuilderApi,
-  storedFiles: StoredFileAttachment[]
-): BuilderStateSnapshot => ({
-  content: builder.message,
-  username: builder.username,
-  avatarUrl: builder.avatarUrl,
-  threadName: builder.threadName,
-  suppressEmbeds: builder.suppressEmbeds,
-  suppressNotifications: builder.suppressNotifications,
-  embeds: cloneEmbedData(builder.embedsData),
-  files: storedFiles,
-})
 
 const defaultScheduleTimeValue = () => toLocalISOString(new Date(Date.now() + 60 * 60 * 1000))
 
@@ -66,37 +33,32 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
   const { user } = useUser()
 
   const [schedules, setSchedules] = useState<ScheduleRow[]>([])
+  const [savedWebhooks, setSavedWebhooks] = useState<SavedWebhookRow[]>([])
   const [loadingSchedules, setLoadingSchedules] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleRow | null>(null)
+  const [selectedSavedWebhook, setSelectedSavedWebhook] = useState<SavedWebhookRow | null>(null)
   const [scheduleName, setScheduleName] = useState('')
+  const [webhookUrl, setWebhookUrl] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
-  const [existingFiles, setExistingFiles] = useState<StoredFileAttachment[]>([])
-  const [removedFiles, setRemovedFiles] = useState<StoredFileAttachment[]>([])
-  
+
   // Recurrence state
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>('once')
   const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>({})
   const [maxExecutions, setMaxExecutions] = useState<number | undefined>(undefined)
 
-  const newFilesCount = builder.files.length
-  const retainedFilesCount = existingFiles.length
-
-  const totalFilesCount = useMemo(
-    () => retainedFilesCount + newFilesCount,
-    [retainedFilesCount, newFilesCount]
-  )
-
   useEffect(() => {
     if (!user) {
       resetEditorState()
       setSchedules([])
+      setSavedWebhooks([])
       return
     }
     void loadSchedules()
+    void loadSavedWebhooks()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
@@ -106,12 +68,6 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
       setLoadingSchedules(true)
       const data = await fetchSchedules(supabase, user.id)
       setSchedules(data)
-      if (selectedSchedule) {
-        const updated = data.find(schedule => schedule.id === selectedSchedule.id)
-        if (updated) {
-          await applyScheduleToBuilder(updated)
-        }
-      }
     } catch (error) {
       console.error('Error fetching schedules:', error)
       toast.error('Failed to load schedules')
@@ -120,77 +76,39 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     }
   }
 
+  const loadSavedWebhooks = async () => {
+    if (!user) return
+    try {
+      const data = await fetchSavedWebhooks(supabase, user.id)
+      setSavedWebhooks(data)
+    } catch (error) {
+      console.error('Error fetching saved webhooks:', error)
+      toast.error('Failed to load saved webhooks')
+    }
+  }
+
   const resetEditorState = () => {
     setSelectedSchedule(null)
+    setSelectedSavedWebhook(null)
     setScheduleName('')
+    setWebhookUrl('')
     setScheduleTime('')
-    setExistingFiles([])
-    setRemovedFiles([])
     setIsRecurring(false)
     setRecurrencePattern('once')
     setRecurrenceConfig({})
     setMaxExecutions(undefined)
-    builder.setFiles([])
-  }
-
-  const applyBuilderState = (state: HydratedBuilderState) => {
-    builder.setMessage(state.content)
-    builder.setUsername(state.username)
-    builder.setAvatarUrl(state.avatarUrl)
-    builder.setThreadName(state.threadName)
-    builder.setSuppressEmbeds(state.suppressEmbeds)
-    builder.setSuppressNotifications(state.suppressNotifications)
-    builder.setEmbedsData(
-      state.embeds.length > 0 ? state.embeds : [createDefaultEmbed()]
-    )
-  }
-
-  const applyScheduleToBuilder = async (schedule: ScheduleRow) => {
-    const hydrated = hydrateBuilderState(schedule.builder_state ?? {})
-    applyBuilderState(hydrated)
-    builder.setFiles([])
-    setScheduleName(schedule.name)
-    setScheduleTime(toLocalISOString(new Date(schedule.schedule_time)))
-    setExistingFiles(schedule.files ?? [])
-    setRemovedFiles([])
-    setIsRecurring(schedule.is_recurring || false)
-    setRecurrencePattern(schedule.recurrence_pattern || 'once')
-    setRecurrenceConfig(schedule.recurrence_config || {})
-    setMaxExecutions(schedule.max_executions)
-    setSelectedSchedule(schedule)
-  }
-
-  const handleSelectSchedule = async (scheduleId: string) => {
-    if (!user) return
-    try {
-      const schedule = await getScheduleById(supabase, user.id, scheduleId)
-      await applyScheduleToBuilder(schedule)
-      toast.success(`Editing schedule "${schedule.name}"`)
-    } catch (error) {
-      console.error('Error loading schedule:', error)
-      toast.error('Failed to load schedule')
-    }
-  }
-
-  const handleToggleExistingFile = (file: StoredFileAttachment) => {
-    const isRemoved = removedFiles.some(item => item.storagePath === file.storagePath)
-    if (isRemoved) {
-      setRemovedFiles(prev => prev.filter(item => item.storagePath !== file.storagePath))
-      setExistingFiles(prev => [...prev, file])
-    } else {
-      setExistingFiles(prev => prev.filter(item => item.storagePath !== file.storagePath))
-      setRemovedFiles(prev => [...prev, file])
-    }
   }
 
   const validateScheduleInput = () => {
-    if (!hasBuilderContent(builder)) {
-      toast.error('Cannot schedule an empty message')
+    if (!selectedSavedWebhook) {
+      toast.error('Select a saved webhook to schedule')
       return false
     }
 
-    const validUrl = builder.getValidWebhookUrl()
-    if (!validUrl) return false
+    if (!webhookUrl.trim()) {
+      toast.error('Webhook URL is required')
+      return false
+    }
 
     if (!scheduleName.trim()) {
       toast.error('Schedule name is required')
@@ -220,26 +138,17 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     if (!user) return
     if (!validateScheduleInput()) return
 
-    const validUrl = builder.getValidWebhookUrl()
-    if (!validUrl) return
-
-    const snapshot = snapshotFromBuilder(builder, existingFiles)
-
     setSaving(true)
     try {
-      let result: ScheduleRow
       if (selectedSchedule) {
-        result = await updateSchedule({
+        await updateSchedule({
           supabase,
           scheduleId: selectedSchedule.id,
           userId: user.id,
           name: scheduleName.trim(),
-          webhookUrl: validUrl,
+          webhookUrl: webhookUrl.trim(),
+          savedWebhookId: selectedSavedWebhook!.id,
           scheduleTime,
-          snapshot,
-          retainedFiles: existingFiles,
-          filesToRemove: removedFiles,
-          newFiles: builder.files,
           isActive: true,
           isRecurring,
           recurrencePattern,
@@ -248,14 +157,13 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
         })
         toast.success('Schedule updated')
       } else {
-        result = await createSchedule({
+        await createSchedule({
           supabase,
           userId: user.id,
           name: scheduleName.trim(),
-          webhookUrl: validUrl,
+          webhookUrl: webhookUrl.trim(),
+          savedWebhookId: selectedSavedWebhook!.id,
           scheduleTime,
-          snapshot,
-          files: builder.files,
           isRecurring,
           recurrencePattern,
           recurrenceConfig: isRecurring ? recurrenceConfig : undefined,
@@ -264,10 +172,8 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
         toast.success('Schedule created')
       }
 
-      builder.setFiles([])
-      setRemovedFiles([])
       await loadSchedules()
-      await applyScheduleToBuilder(result)
+      resetEditorState()
     } catch (error) {
       console.error('Error saving schedule:', error)
       toast.error('Failed to save schedule')
@@ -300,6 +206,32 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     toast.success('Creating new schedule')
   }
 
+  const handleSelectSchedule = async (scheduleId: string) => {
+    if (!user) return
+    try {
+      const schedule = await getScheduleById(supabase, user.id, scheduleId)
+      setSelectedSchedule(schedule)
+      setScheduleName(schedule.name)
+      setWebhookUrl(schedule.webhook_url)
+      setScheduleTime(toLocalISOString(new Date(schedule.schedule_time)))
+      setIsRecurring(schedule.is_recurring || false)
+      setRecurrencePattern(schedule.recurrence_pattern || 'once')
+      setRecurrenceConfig(schedule.recurrence_config || {})
+      setMaxExecutions(schedule.max_executions)
+
+      // Find and set the saved webhook
+      const webhook = savedWebhooks.find(w => w.id === schedule.saved_webhook_id)
+      if (webhook) {
+        setSelectedSavedWebhook(webhook)
+      }
+
+      toast.success(`Editing schedule "${schedule.name}"`)
+    } catch (error) {
+      console.error('Error loading schedule:', error)
+      toast.error('Failed to load schedule')
+    }
+  }
+
   useEffect(() => {
     if (!selectedSchedule) {
       setScheduleTime(prev => prev || defaultScheduleTimeValue())
@@ -318,8 +250,6 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
     )
   }
 
-  const hasRemovedFiles = removedFiles.length > 0
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -332,7 +262,7 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
           <div>
             <h2 className="text-2xl font-semibold text-indigo-400">Schedule Manager</h2>
             <p className="text-gray-400 text-base">
-              Automate webhook delivery • Files: {totalFilesCount}
+              Automate webhook delivery • {schedules.filter(s => s.is_active).length} / 3 active schedules
             </p>
           </div>
         </div>
@@ -375,6 +305,40 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
+
+          <div>
+            <label className="form-label">Webhook URL</label>
+            <input
+              type="url"
+              value={webhookUrl}
+              onChange={event => setWebhookUrl(event.target.value)}
+              placeholder="https://discord.com/api/webhooks/..."
+              className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="form-label">Saved Webhook</label>
+            <select
+              value={selectedSavedWebhook?.id || ''}
+              onChange={event => {
+                const webhook = savedWebhooks.find(w => w.id === event.target.value)
+                setSelectedSavedWebhook(webhook || null)
+              }}
+              className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">Select a saved webhook...</option>
+              {savedWebhooks.map(webhook => (
+                <option key={webhook.id} value={webhook.id}>
+                  {webhook.name}
+                </option>
+              ))}
+            </select>
+            <p className="form-hint mt-1">
+              Choose a saved webhook configuration to schedule
+            </p>
+          </div>
+
           {/* Recurring toggle */}
           <div className="flex items-center gap-3">
             <label className="flex items-center cursor-pointer">
@@ -403,7 +367,7 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               onConfigChange={setRecurrenceConfig}
             />
           )}
-          
+
           <div>
             <label className="form-label">
               {isRecurring ? 'Start Time' : 'Schedule Time'}
@@ -418,7 +382,7 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               Uses your local timezone. {isRecurring ? 'First execution will be at this time.' : 'Cron runs every minute via Supabase.'}
             </p>
           </div>
-          
+
           {/* Max executions for recurring */}
           {isRecurring && (
             <div>
@@ -436,11 +400,12 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               </p>
             </div>
           )}
+
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               type="button"
               onClick={handleSaveSchedule}
-              disabled={saving}
+              disabled={saving || !selectedSavedWebhook}
               className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-800 text-white font-bold py-3 px-4 rounded-lg transition duration-150 shadow-md"
             >
               {saving
@@ -449,80 +414,23 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
                   ? 'Update Schedule'
                   : 'Create Schedule'}
             </button>
-            <button
-              type="button"
-              onClick={() => builder.setFiles([])}
-              className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-150"
-            >
-              Clear New Files
-            </button>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-200 mb-2">Existing Attachments</h3>
-            {existingFiles.length === 0 && removedFiles.length === 0 ? (
-              <p className="text-sm text-gray-400">No stored files for this schedule.</p>
-            ) : (
-              <div className="space-y-2">
-                {existingFiles.map(file => (
-                  <div
-                    key={file.storagePath}
-                    className="flex items-center justify-between bg-gray-900/40 border border-gray-700 rounded-lg px-3 py-2"
-                  >
-                    <div>
-                      <p className="text-sm text-white">{file.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {(file.size / 1024).toFixed(1)} KB • {file.mimeType}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleExistingFile(file)}
-                      className="text-xs bg-red-600/80 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-md transition"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-                {removedFiles.map(file => (
-                  <div
-                    key={`${file.storagePath}-removed`}
-                    className="flex items-center justify-between bg-red-900/30 border border-red-700 rounded-lg px-3 py-2"
-                  >
-                    <div>
-                      <p className="text-sm text-white line-through">{file.name}</p>
-                      <p className="text-xs text-gray-300">Marked for deletion</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleExistingFile(file)}
-                      className="text-xs bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 rounded-md transition"
-                    >
-                      Restore
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          {newFilesCount > 0 && (
+          {selectedSavedWebhook && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-200 mb-2">New Attachments</h3>
-              <ul className="space-y-2">
-                {builder.files.map((file: File, index: number) => (
-                  <li key={`${file.name}-${index}`} className="text-sm text-gray-300">
-                    {file.name} • {(file.size / 1024).toFixed(1)} KB
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-lg font-semibold text-gray-200 mb-2">Selected Webhook Preview</h3>
+              <div className="bg-gray-900/40 border border-gray-700 rounded-lg p-4">
+                <h4 className="font-semibold text-white mb-2">{selectedSavedWebhook.name}</h4>
+                <p className="text-sm text-gray-300 mb-2">
+                  {selectedSavedWebhook.message_data?.content || 'No message'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {selectedSavedWebhook.files?.length || 0} files • Created {new Date(selectedSavedWebhook.created_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-          )}
-          {hasRemovedFiles && (
-            <p className="text-xs text-yellow-400">
-              Removed files will be deleted when you update the schedule.
-            </p>
           )}
         </div>
       </div>
@@ -550,7 +458,7 @@ export default function ScheduleManager({ builder }: ScheduleManagerProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-gray-400 mb-2">No schedules yet</p>
-            <p className="text-sm text-gray-500">Configure your webhook above and create your first schedule</p>
+            <p className="text-sm text-gray-500">Select a saved webhook above and create your first schedule</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">

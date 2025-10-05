@@ -12,7 +12,7 @@ interface Schedule {
   created_at: string
 }
 
-export default function ScheduleList({ refresh }: { refresh: number }) {
+export default function ScheduleList({ refresh }: { refresh?: number }) {
   const supabase = useSupabase()
   const { user } = useUser()
   const [schedules, setSchedules] = useState<Schedule[]>([])
