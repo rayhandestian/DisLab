@@ -123,6 +123,7 @@ export const createSchedule = async ({
       is_recurring: isRecurring,
       recurrence_pattern: recurrencePattern,
       recurrence_config: recurrenceConfig,
+      cron_expression: recurrencePattern === 'custom' ? recurrenceConfig?.cronExpression : null,
       next_execution_at: nextExecutionAt,
       max_executions: maxExecutions,
       execution_count: 0,
@@ -173,7 +174,7 @@ export const updateSchedule = async ({
   const isoScheduleTime = typeof scheduleTime === 'string' ? new Date(scheduleTime).toISOString() : scheduleTime.toISOString()
   const messagePayload = createWebhookMessagePayload(snapshotWithFiles)
 
-  const { data, error} = await supabase
+  const { data, error } = await supabase
     .from(SCHEDULES_TABLE)
     .update({
       name,
@@ -186,6 +187,7 @@ export const updateSchedule = async ({
       is_recurring: isRecurring,
       recurrence_pattern: recurrencePattern,
       recurrence_config: recurrenceConfig,
+      cron_expression: recurrencePattern === 'custom' ? recurrenceConfig?.cronExpression : null,
       next_execution_at: isoScheduleTime,
       max_executions: maxExecutions,
       updated_at: new Date().toISOString(),
