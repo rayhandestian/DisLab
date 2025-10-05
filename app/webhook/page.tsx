@@ -729,7 +729,10 @@ export default function WebhookPage() {
                 </div>
               )}
             </form>
+          </div>
 
+          {/* Schedule Manager Card */}
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-lg p-6 sm:p-8 mt-8 fade-in">
             <ScheduleManager builder={builder} />
           </div>
         </div>
