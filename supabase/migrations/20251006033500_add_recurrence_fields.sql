@@ -12,6 +12,14 @@ ALTER TABLE public.schedules
   ADD COLUMN IF NOT EXISTS execution_count INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS max_executions INTEGER;
 
+-- Drop old check constraint if it exists and create new one
+ALTER TABLE public.schedules
+  DROP CONSTRAINT IF EXISTS schedules_recurrence_pattern_check;
+
+ALTER TABLE public.schedules
+  ADD CONSTRAINT schedules_recurrence_pattern_check
+  CHECK (recurrence_pattern IN ('once', 'cron') OR recurrence_pattern IS NULL);
+
 -- Create index for efficient cron queries
 CREATE INDEX IF NOT EXISTS idx_schedules_next_execution
   ON public.schedules(next_execution_at)
