@@ -140,6 +140,14 @@ export default function ScheduleManager() {
       // Include timezone in recurrence config
       const configWithTimezone = { ...recurrenceConfig, timezone }
 
+      console.log('Saving schedule with:', {
+        recurrencePattern,
+        isRecurring,
+        scheduleTime,
+        configWithTimezone,
+        timezone
+      })
+
       if (selectedSchedule) {
         await updateSchedule({
           supabase,
@@ -174,7 +182,8 @@ export default function ScheduleManager() {
       resetEditorState()
     } catch (error) {
       console.error('Error saving schedule:', error)
-      toast.error('Failed to save schedule')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to save schedule: ${errorMessage}`)
     } finally {
       setSaving(false)
     }
