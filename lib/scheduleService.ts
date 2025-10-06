@@ -113,38 +113,51 @@ export const createSchedule = async ({
   const savedWebhook = await getSavedWebhookById(supabase, userId, savedWebhookId)
 
   // Calculate next_execution_at
-  // For cron schedules with * * * * * (every minute), start immediately
   let nextExecutionAt: string
-  if (isRecurring && recurrencePattern === 'cron' && recurrenceConfig?.cronExpression === '* * * * *') {
-    // Start immediately for every-minute schedules
-    nextExecutionAt = new Date().toISOString()
+  if (isRecurring && recurrencePattern === 'cron') {
+    // For cron schedules, calculate the next execution time
+    try {
+      const nextExecution = calculateNextExecution(recurrencePattern, recurrenceConfig || {}, new Date())
+      nextExecutionAt = nextExecution.toISOString()
+    } catch (error) {
+      console.error('Error calculating next execution:', error)
+      // Fallback to current time + 1 minute
+      nextExecutionAt = new Date(Date.now() + 60 * 1000).toISOString()
+    }
   } else {
-    // Use the provided schedule time
+    // For one-time schedules, use the provided schedule time
     nextExecutionAt = typeof scheduleTime === 'string'
       ? new Date(scheduleTime).toISOString()
       : scheduleTime.toISOString()
   }
 
+  // Prepare the insert data, only including columns that exist
+  const insertData: Record<string, unknown> = {
+    id: scheduleId,
+    user_id: userId,
+    name,
+    webhook_url: webhookUrl,
+    saved_webhook_id: savedWebhookId,
+    message_data: savedWebhook.message_data,
+    builder_state: savedWebhook.builder_state,
+    files: savedWebhook.files,
+    schedule_time: typeof scheduleTime === 'string' ? new Date(scheduleTime).toISOString() : scheduleTime.toISOString(),
+  }
+
+  // Add new columns if they exist (migration applied)
+  if (isRecurring !== undefined) insertData.is_recurring = isRecurring
+  if (recurrencePattern) insertData.recurrence_pattern = recurrencePattern
+  if (recurrenceConfig) insertData.recurrence_config = recurrenceConfig
+  if (recurrencePattern === 'cron' && recurrenceConfig?.cronExpression) insertData.cron_expression = recurrenceConfig.cronExpression
+  if (nextExecutionAt) insertData.next_execution_at = nextExecutionAt
+  if (maxExecutions !== undefined) insertData.max_executions = maxExecutions
+  insertData.execution_count = 0
+
+  console.log('Inserting schedule data:', insertData)
+
   const { data, error } = await supabase
     .from(SCHEDULES_TABLE)
-    .insert({
-      id: scheduleId,
-      user_id: userId,
-      name,
-      webhook_url: webhookUrl,
-      saved_webhook_id: savedWebhookId,
-      message_data: savedWebhook.message_data,
-      builder_state: savedWebhook.builder_state,
-      files: savedWebhook.files,
-      schedule_time: typeof scheduleTime === 'string' ? new Date(scheduleTime).toISOString() : scheduleTime.toISOString(),
-      is_recurring: isRecurring,
-      recurrence_pattern: recurrencePattern,
-      recurrence_config: recurrenceConfig,
-      cron_expression: recurrencePattern === 'cron' ? recurrenceConfig?.cronExpression : null,
-      next_execution_at: nextExecutionAt,
-      max_executions: maxExecutions,
-      execution_count: 0,
-    })
+    .insert(insertData)
     .select()
     .single()
 
@@ -172,29 +185,37 @@ export const updateSchedule = async ({
   maxExecutions,
 }: UpdateScheduleParams): Promise<ScheduleRowType> => {
   // Fetch the saved webhook data
+  console.log('Fetching saved webhook:', { userId, savedWebhookId })
   const savedWebhook = await getSavedWebhookById(supabase, userId, savedWebhookId)
+  console.log('Fetched saved webhook:', !!savedWebhook)
 
   const isoScheduleTime = typeof scheduleTime === 'string' ? new Date(scheduleTime).toISOString() : scheduleTime.toISOString()
 
+  // Prepare the update data, only including columns that exist
+  const updateData: Record<string, unknown> = {
+    name,
+    webhook_url: webhookUrl,
+    saved_webhook_id: savedWebhookId,
+    message_data: savedWebhook.message_data,
+    builder_state: savedWebhook.builder_state,
+    files: savedWebhook.files,
+    schedule_time: isoScheduleTime,
+  }
+
+  // Add new columns if they exist (migration applied)
+  if (isActive !== undefined) updateData.is_active = isActive
+  if (isRecurring !== undefined) updateData.is_recurring = isRecurring
+  if (recurrencePattern) updateData.recurrence_pattern = recurrencePattern
+  if (recurrenceConfig) updateData.recurrence_config = recurrenceConfig
+  if (recurrencePattern === 'cron' && recurrenceConfig?.cronExpression) updateData.cron_expression = recurrenceConfig.cronExpression
+  if (maxExecutions !== undefined) updateData.max_executions = maxExecutions
+  updateData.updated_at = new Date().toISOString()
+
+  console.log('Updating schedule data:', updateData)
+
   const { data, error } = await supabase
     .from(SCHEDULES_TABLE)
-    .update({
-      name,
-      webhook_url: webhookUrl,
-      saved_webhook_id: savedWebhookId,
-      message_data: savedWebhook.message_data,
-      builder_state: savedWebhook.builder_state,
-      files: savedWebhook.files,
-      schedule_time: isoScheduleTime,
-      is_active: isActive,
-      is_recurring: isRecurring,
-      recurrence_pattern: recurrencePattern,
-      recurrence_config: recurrenceConfig,
-      cron_expression: recurrencePattern === 'cron' ? recurrenceConfig?.cronExpression : null,
-      next_execution_at: isoScheduleTime,
-      max_executions: maxExecutions,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('id', scheduleId)
     .eq('user_id', userId)
     .select()

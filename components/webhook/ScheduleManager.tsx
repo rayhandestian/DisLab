@@ -92,6 +92,14 @@ export default function ScheduleManager() {
   }
 
   const validateScheduleInput = () => {
+    console.log('Validating schedule input:', {
+      selectedSavedWebhook: !!selectedSavedWebhook,
+      webhookUrl: webhookUrl.trim(),
+      scheduleName: scheduleName.trim(),
+      recurrencePattern,
+      recurrenceConfig
+    })
+
     if (!selectedSavedWebhook) {
       toast.error('Select a saved webhook to schedule')
       return false
@@ -123,6 +131,13 @@ export default function ScheduleManager() {
       }
     }
 
+    if (recurrencePattern === 'cron') {
+      if (!recurrenceConfig.cronExpression) {
+        toast.error('Cron expression is required')
+        return false
+      }
+    }
+
     return true
   }
 
@@ -145,7 +160,10 @@ export default function ScheduleManager() {
         isRecurring,
         scheduleTime,
         configWithTimezone,
-        timezone
+        timezone,
+        selectedSavedWebhook: selectedSavedWebhook?.id,
+        scheduleName: scheduleName.trim(),
+        webhookUrl: webhookUrl.trim()
       })
 
       if (selectedSchedule) {
@@ -182,7 +200,19 @@ export default function ScheduleManager() {
       resetEditorState()
     } catch (error) {
       console.error('Error saving schedule:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error details:', JSON.stringify(error, null, 2))
+
+      let errorMessage = 'Unknown error'
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = String(error.message)
+        } else if ('error' in error && error.error) {
+          errorMessage = String(error.error)
+        } else if ('details' in error) {
+          errorMessage = String(error.details)
+        }
+      }
+
       toast.error(`Failed to save schedule: ${errorMessage}`)
     } finally {
       setSaving(false)
