@@ -1,91 +1,6 @@
 import type { ParsedSchedule } from './types/schedule'
 
-/**
- * Parse natural language input into a schedule configuration
- */
-export function parseNaturalLanguage(input: string): ParsedSchedule | null {
-  const lower = input.toLowerCase().trim()
-  
-  // Daily patterns
-  const dailyMatch = lower.match(/^(?:every\s*day|daily)\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i)
-  if (dailyMatch) {
-    const time = normalizeTime(dailyMatch[1], dailyMatch[2], dailyMatch[3])
-    return {
-      pattern: 'daily',
-      config: { time },
-      description: `Every day at ${time}`
-    }
-  }
-  
-  // Weekly patterns - specific days
-  const weeklyMatch = lower.match(/^every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+and\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday))*\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i)
-  if (weeklyMatch) {
-    const days = extractDaysFromMatch(lower)
-    const timeMatch = lower.match(/at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i)
-    const time = timeMatch ? normalizeTime(timeMatch[1], timeMatch[2], timeMatch[3]) : '09:00'
-    
-    return {
-      pattern: 'weekly',
-      config: { days, time },
-      description: `Every ${formatDays(days)} at ${time}`
-    }
-  }
-  
-  // Weekday pattern
-  if (lower.match(/^(?:every\s*)?weekday/i)) {
-    const timeMatch = lower.match(/at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i)
-    const time = timeMatch ? normalizeTime(timeMatch[1], timeMatch[2], timeMatch[3]) : '09:00'
-    
-    return {
-      pattern: 'weekly',
-      config: { days: [1, 2, 3, 4, 5], time }, // Mon-Fri
-      description: `Every weekday at ${time}`
-    }
-  }
-  
-  // Weekend pattern
-  if (lower.match(/^(?:every\s*)?weekend/i)) {
-    const timeMatch = lower.match(/at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i)
-    const time = timeMatch ? normalizeTime(timeMatch[1], timeMatch[2], timeMatch[3]) : '09:00'
-    
-    return {
-      pattern: 'weekly',
-      config: { days: [0, 6], time }, // Sun, Sat
-      description: `Every weekend at ${time}`
-    }
-  }
-  
-  // Monthly patterns
-  const monthlyMatch = lower.match(/^(?:every\s*month|monthly)\s+on\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?$/i)
-  if (monthlyMatch) {
-    const day = parseInt(monthlyMatch[1])
-    const time = normalizeTime(monthlyMatch[2], monthlyMatch[3], monthlyMatch[4])
-    
-    if (day >= 1 && day <= 31) {
-      return {
-        pattern: 'monthly',
-        config: { day, time },
-        description: `Every month on the ${formatOrdinal(day)} at ${time}`
-      }
-    }
-  }
-  
-  // Hourly pattern
-  const hourlyMatch = lower.match(/^every\s+(\d+)\s+hours?$/i)
-  if (hourlyMatch) {
-    const hours = parseInt(hourlyMatch[1])
-    const cronExpression = `0 */${hours} * * *`
-    
-    return {
-      pattern: 'custom',
-      config: { cronExpression },
-      cronExpression,
-      description: `Every ${hours} hour${hours > 1 ? 's' : ''}`
-    }
-  }
-  
-  return null
-}
+// Natural language parsing removed as per requirements - only cron expressions are used
 
 /**
  * Validate a cron expression
@@ -188,17 +103,4 @@ function formatOrdinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-/**
- * Get common schedule presets
- */
-export function getSchedulePresets(): Array<{ label: string; value: string }> {
-  return [
-    { label: 'Every day at 9 AM', value: 'daily at 9:00' },
-    { label: 'Every weekday at 9 AM', value: 'every weekday at 9:00' },
-    { label: 'Every Monday at 9 AM', value: 'every monday at 9:00' },
-    { label: 'Every weekend at 10 AM', value: 'every weekend at 10:00' },
-    { label: 'Monthly on the 1st at noon', value: 'monthly on the 1st at 12:00' },
-    { label: 'Every 6 hours', value: 'every 6 hours' },
-    { label: 'Every 12 hours', value: 'every 12 hours' },
-  ]
-}
+// Schedule presets removed as natural language parsing is not used

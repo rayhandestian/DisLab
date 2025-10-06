@@ -80,8 +80,7 @@ serve(async (req) => {
         console.log(`Webhook ${success ? 'sent successfully' : 'failed'} for schedule ${schedule.id}`)
 
         // Determine if schedule should continue
-        const shouldContinue = schedule.is_recurring &&
-          (!schedule.max_executions || newExecutionCount < schedule.max_executions)
+        const shouldContinue = schedule.is_recurring
 
         const updateData: any = {
           last_executed_at: now.toISOString(),
@@ -90,16 +89,23 @@ serve(async (req) => {
         }
 
         if (shouldContinue) {
-          // Calculate next execution time
-          const nextExecution = calculateNextExecution(
-            schedule.recurrence_pattern,
-            schedule.recurrence_config,
-            now
-          )
+          // Calculate next execution time based on pattern
+          let nextExecution: Date
+
+          if (schedule.recurrence_pattern === 'cron' && schedule.recurrence_config?.cronExpression) {
+            // For cron schedules, use the cron parser
+            nextExecution = parseAndCalculateNext(schedule.recurrence_config.cronExpression, now)
+          } else {
+            // For once schedules or fallback, mark as inactive
+            updateData.is_active = false
+            console.log(`Schedule ${schedule.id} marked as inactive`)
+            continue
+          }
+
           updateData.next_execution_at = nextExecution.toISOString()
           console.log(`Next execution scheduled for: ${nextExecution.toISOString()}`)
         } else {
-          // Deactivate one-time or completed recurring schedules
+          // Deactivate one-time schedules
           updateData.is_active = false
           console.log(`Schedule ${schedule.id} marked as inactive`)
         }

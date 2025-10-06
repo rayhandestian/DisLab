@@ -2,23 +2,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { BuilderStateSnapshot, WebhookMessagePayload, StoredFileAttachment } from '@/lib/webhookSerializer'
 
 // Recurrence pattern types
-export type RecurrencePattern = 'once' | 'daily' | 'weekly' | 'monthly' | 'custom'
+export type RecurrencePattern = 'once' | 'cron'
 
 // Configuration for different recurrence patterns
 export type RecurrenceConfig = {
    // For once pattern
    datetime?: string // ISO 8601 datetime string for one-time execution
 
-   // For daily pattern
-   time?: string // "HH:mm" format (24-hour)
-
-   // For weekly pattern
-   days?: number[] // 0-6, where 0 is Sunday, 1 is Monday, etc.
-
-   // For monthly pattern
-   day?: number // 1-31, day of month
-
-   // For custom pattern
+   // For cron pattern
    cronExpression?: string // Standard cron format
 
    // Common fields

@@ -113,9 +113,9 @@ export const createSchedule = async ({
   const savedWebhook = await getSavedWebhookById(supabase, userId, savedWebhookId)
 
   // Calculate next_execution_at
-  // For recurring schedules with * * * * * (every minute), start immediately
+  // For cron schedules with * * * * * (every minute), start immediately
   let nextExecutionAt: string
-  if (isRecurring && recurrencePattern === 'custom' && recurrenceConfig?.cronExpression === '* * * * *') {
+  if (isRecurring && recurrencePattern === 'cron' && recurrenceConfig?.cronExpression === '* * * * *') {
     // Start immediately for every-minute schedules
     nextExecutionAt = new Date().toISOString()
   } else {
@@ -140,7 +140,7 @@ export const createSchedule = async ({
       is_recurring: isRecurring,
       recurrence_pattern: recurrencePattern,
       recurrence_config: recurrenceConfig,
-      cron_expression: recurrencePattern === 'custom' ? recurrenceConfig?.cronExpression : null,
+      cron_expression: recurrencePattern === 'cron' ? recurrenceConfig?.cronExpression : null,
       next_execution_at: nextExecutionAt,
       max_executions: maxExecutions,
       execution_count: 0,
@@ -190,7 +190,7 @@ export const updateSchedule = async ({
       is_recurring: isRecurring,
       recurrence_pattern: recurrencePattern,
       recurrence_config: recurrenceConfig,
-      cron_expression: recurrencePattern === 'custom' ? recurrenceConfig?.cronExpression : null,
+      cron_expression: recurrencePattern === 'cron' ? recurrenceConfig?.cronExpression : null,
       next_execution_at: isoScheduleTime,
       max_executions: maxExecutions,
       updated_at: new Date().toISOString(),
@@ -271,62 +271,31 @@ export function calculateNextExecution(
   config: RecurrenceConfig,
   fromDate: Date = new Date()
 ): Date {
-  const next = new Date(fromDate)
-  
   switch (pattern) {
     case 'once':
+      return fromDate
+
+    case 'cron':
+      // For cron schedules, we need to calculate the next execution based on the cron expression
+      // This is a simplified implementation - in production, you'd want a full cron parser
+      if (config.cronExpression) {
+        // For now, return the next minute for testing
+        // In the backend, this will be handled by the cron parser
+        const next = new Date(fromDate)
+        next.setMinutes(next.getMinutes() + 1)
+        return next
+      }
+      // Fallback
+      const next = new Date(fromDate)
+      next.setDate(next.getDate() + 1)
       return next
-      
-    case 'daily':
-      next.setDate(next.getDate() + 1)
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':').map(Number)
-        next.setHours(hours, minutes, 0, 0)
-      }
-      break
-      
-    case 'weekly':
-      if (config.days && config.days.length > 0) {
-        const currentDay = next.getDay()
-        const sortedDays = [...config.days].sort()
-        
-        // Find next day in the week
-        let nextDay = sortedDays.find(d => d > currentDay)
-        
-        if (nextDay === undefined) {
-          // Wrap to next week
-          nextDay = sortedDays[0]
-          next.setDate(next.getDate() + (7 - currentDay + nextDay))
-        } else {
-          next.setDate(next.getDate() + (nextDay - currentDay))
-        }
-        
-        if (config.time) {
-          const [hours, minutes] = config.time.split(':').map(Number)
-          next.setHours(hours, minutes, 0, 0)
-        }
-      }
-      break
-      
-    case 'monthly':
-      next.setMonth(next.getMonth() + 1)
-      if (config.day) {
-        next.setDate(config.day)
-      }
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':').map(Number)
-        next.setHours(hours, minutes, 0, 0)
-      }
-      break
-      
-    case 'custom':
-      // For custom cron, this would need a proper cron parser
-      // For now, default to +1 day
-      next.setDate(next.getDate() + 1)
-      break
+
+    default:
+      // Fallback for unknown patterns
+      const fallback = new Date(fromDate)
+      fallback.setDate(fallback.getDate() + 1)
+      return fallback
   }
-  
-  return next
 }
 
 /**

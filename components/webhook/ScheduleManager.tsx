@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 
 import Login from '@/components/Login'
 import RecurrenceSelector from '@/components/RecurrenceSelector'
+import TimezoneSelector from '@/components/TimezoneSelector'
 import WebhookPreview from '@/components/WebhookPreview'
 import {
   createSchedule,
@@ -38,10 +39,10 @@ export default function ScheduleManager() {
   const [selectedSavedWebhook, setSelectedSavedWebhook] = useState<SavedWebhookRow | null>(null)
   const [scheduleName, setScheduleName] = useState('')
   const [webhookUrl, setWebhookUrl] = useState('')
-  // Recurrence state - always shown, default to 'once'
+  // Recurrence state - simplified to 'once' or 'cron'
   const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>('once')
   const [recurrenceConfig, setRecurrenceConfig] = useState<RecurrenceConfig>({})
-  const [maxExecutions, setMaxExecutions] = useState<number | undefined>(undefined)
+  const [timezone, setTimezone] = useState<string>('UTC')
 
   useEffect(() => {
     if (!user) {
@@ -87,7 +88,7 @@ export default function ScheduleManager() {
     setWebhookUrl('')
     setRecurrencePattern('once')
     setRecurrenceConfig({})
-    setMaxExecutions(undefined)
+    setTimezone('UTC')
   }
 
   const validateScheduleInput = () => {
@@ -131,10 +132,13 @@ export default function ScheduleManager() {
 
     setSaving(true)
     try {
-      const isRecurring = recurrencePattern !== 'once'
+      const isRecurring = recurrencePattern === 'cron'
       const scheduleTime = recurrencePattern === 'once'
         ? new Date(recurrenceConfig.datetime!)
-        : new Date() // For recurring, use current time as base
+        : new Date() // For cron, use current time as base
+
+      // Include timezone in recurrence config
+      const configWithTimezone = { ...recurrenceConfig, timezone }
 
       if (selectedSchedule) {
         await updateSchedule({
@@ -148,8 +152,7 @@ export default function ScheduleManager() {
           isActive: true,
           isRecurring,
           recurrencePattern,
-          recurrenceConfig: isRecurring ? recurrenceConfig : undefined,
-          maxExecutions: isRecurring ? maxExecutions : undefined,
+          recurrenceConfig: configWithTimezone,
         })
         toast.success('Schedule updated')
       } else {
@@ -162,8 +165,7 @@ export default function ScheduleManager() {
           scheduleTime,
           isRecurring,
           recurrencePattern,
-          recurrenceConfig: isRecurring ? recurrenceConfig : undefined,
-          maxExecutions: isRecurring ? maxExecutions : undefined,
+          recurrenceConfig: configWithTimezone,
         })
         toast.success('Schedule created')
       }
@@ -225,16 +227,32 @@ export default function ScheduleManager() {
       setSelectedSchedule(schedule)
       setScheduleName(schedule.name)
       setWebhookUrl(schedule.webhook_url)
-      setRecurrencePattern(schedule.recurrence_pattern || 'once')
+
+      // Handle legacy patterns - convert old patterns to new ones
+      let pattern: RecurrencePattern = 'once'
+      if (schedule.recurrence_pattern === 'cron' || schedule.cron_expression) {
+        pattern = 'cron'
+      } else if (schedule.recurrence_pattern && schedule.recurrence_pattern !== 'once') {
+        // Convert old patterns to cron
+        pattern = 'cron'
+      }
+      setRecurrencePattern(pattern)
 
       // Set recurrence config based on pattern
-      if (schedule.recurrence_pattern === 'once') {
-        setRecurrenceConfig({ datetime: toLocalISOString(new Date(schedule.schedule_time)) })
+      const config = schedule.recurrence_config || {}
+      if (pattern === 'once') {
+        setRecurrenceConfig({
+          datetime: toLocalISOString(new Date(schedule.schedule_time)),
+          timezone: config.timezone || 'UTC'
+        })
       } else {
-        setRecurrenceConfig(schedule.recurrence_config || {})
+        setRecurrenceConfig({
+          cronExpression: config.cronExpression || schedule.cron_expression || '0 9 * * *',
+          timezone: config.timezone || 'UTC'
+        })
       }
 
-      setMaxExecutions(schedule.max_executions)
+      setTimezone(config.timezone || 'UTC')
 
       // Find and set the saved webhook
       const webhook = savedWebhooks.find(w => w.id === schedule.saved_webhook_id)
@@ -380,48 +398,12 @@ export default function ScheduleManager() {
             onConfigChange={setRecurrenceConfig}
           />
 
-          {/* Max executions for recurring */}
-          {recurrencePattern !== 'once' && (
-            <div>
-              <label className="form-label">Max Executions (Optional)</label>
-              <div className="space-y-2">
-                <input
-                  type="number"
-                  min="1"
-                  value={maxExecutions || ''}
-                  onChange={(e) => setMaxExecutions(e.target.value ? parseInt(e.target.value) : undefined)}
-                  placeholder="Leave empty for unlimited"
-                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setMaxExecutions(10)}
-                    className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded"
-                  >
-                    10
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMaxExecutions(50)}
-                    className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded"
-                  >
-                    50
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMaxExecutions(undefined)}
-                    className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded"
-                  >
-                    Unlimited
-                  </button>
-                </div>
-              </div>
-              <p className="form-hint mt-1">
-                Schedule will stop after this many executions
-              </p>
-            </div>
-          )}
+          {/* Timezone selector */}
+          <TimezoneSelector
+            value={timezone}
+            onChange={setTimezone}
+          />
+
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
