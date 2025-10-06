@@ -51,24 +51,23 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-40">
+    <header className="glass border-b border-white/10 sticky top-0 z-40 backdrop-blur-xl">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo/Brand */}
-          <Link 
-            href="/" 
-            className="text-2xl font-bold text-indigo-400 hover:text-indigo-300 transition-colors duration-150"
+          <Link
+            href="/"
+            className="text-2xl font-bold gradient-text hover:scale-105 transition-transform duration-300"
           >
             DisLab
           </Link>
-
 
           {/* User Section */}
           <div className="flex items-center gap-4">
             {loading ? (
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-700 rounded-full animate-pulse" />
-                <div className="w-20 h-4 bg-gray-700 rounded animate-pulse hidden sm:block" />
+                <div className="w-8 h-8 neumorph-flat rounded-full animate-pulse" />
+                <div className="w-20 h-4 neumorph-flat rounded animate-pulse hidden sm:block" />
               </div>
             ) : user ? (
               <UserMenu />
@@ -76,7 +75,7 @@ export default function Header() {
               <button
                 onClick={handleLogin}
                 disabled={loggingIn}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md text-sm"
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 neumorph-flat text-sm"
               >
                 {loggingIn ? (
                   'Loading...'

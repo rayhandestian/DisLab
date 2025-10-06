@@ -1,7 +1,21 @@
 @import "tailwindcss";
 
+:root {
+  --bg-gradient-start: #0f0f23;
+  --bg-gradient-end: #1a1a2e;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --neumorph-shadow-light: rgba(255, 255, 255, 0.1);
+  --neumorph-shadow-dark: rgba(0, 0, 0, 0.3);
+  --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --subtle-gradient: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
 body {
   font-family: 'Inter', sans-serif;
+  background: var(--bg-gradient-start);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  min-height: 100vh;
 }
 
 .fade-in {
@@ -117,6 +131,102 @@ body {
 
 .interactive-element:active {
   transform: translateY(0);
+}
+
+/* Glassmorphism */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+}
+
+/* Neumorphism */
+.neumorph {
+  background: linear-gradient(145deg, #1a1a2e, #0f0f23);
+  box-shadow:
+    8px 8px 16px var(--neumorph-shadow-dark),
+    -8px -8px 16px var(--neumorph-shadow-light);
+  border-radius: 12px;
+}
+
+.neumorph-inset {
+  background: linear-gradient(145deg, #0f0f23, #1a1a2e);
+  box-shadow:
+    inset 8px 8px 16px var(--neumorph-shadow-dark),
+    inset -8px -8px 16px var(--neumorph-shadow-light);
+  border-radius: 12px;
+}
+
+.neumorph-flat {
+  background: #151525;
+  box-shadow:
+    4px 4px 8px var(--neumorph-shadow-dark),
+    -4px -4px 8px var(--neumorph-shadow-light);
+  border-radius: 8px;
+}
+
+/* Enhanced Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(102, 126, 234, 0.6); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Interactive Elements */
+.interactive-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(0);
+}
+
+.interactive-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(102, 126, 234, 0.2);
+}
+
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtle-gradient-bg {
+  background: var(--subtle-gradient);
 }
 
 /* Mobile optimizations */

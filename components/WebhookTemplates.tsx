@@ -186,14 +186,14 @@ export default function WebhookTemplates({ builder }: WebhookTemplatesProps) {
 
   return (
     <>
-      <div className="border-b border-gray-700 py-2">
+      <div className="border-b border-white/10 py-2">
         <button
           type="button"
           className={`w-full flex justify-between items-center text-left section-toggle ${isOpen ? 'open' : ''}`}
           onClick={() => setIsOpen(!isOpen)}
         >
           <h2 className="section-title">Webhook Templates</h2>
-          <svg className="w-5 h-5 text-gray-400 chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <svg className="w-5 h-5 text-gray-300 chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
               d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
@@ -202,23 +202,23 @@ export default function WebhookTemplates({ builder }: WebhookTemplatesProps) {
           </svg>
         </button>
         <div className={`section-content mt-4 ${isOpen ? 'open' : ''}`}>
-          <p className="text-gray-400 text-sm mb-4">
+          <p className="text-gray-300 text-sm mb-4">
             Choose from pre-built templates to learn webhook formatting and get started quickly
           </p>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {templates.map((template) => (
               <div
                 key={template.name}
-                className="bg-gray-900/40 border border-gray-700/50 rounded-xl p-4 hover:bg-gray-900/60 transition-all duration-200"
+                className="glass-card p-4 interactive-card"
               >
                 <div className="mb-3">
                   <h3 className="font-semibold text-white text-base mb-1">{template.name}</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">{template.description}</p>
+                  <p className="text-xs text-gray-300 leading-relaxed">{template.description}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleUseTemplate(template)}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-3 rounded-lg transition duration-150 shadow-md text-sm"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-2 px-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 neumorph-flat text-sm"
                 >
                   Use Template
                 </button>
@@ -229,24 +229,24 @@ export default function WebhookTemplates({ builder }: WebhookTemplatesProps) {
       </div>
 
       {showConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="glass-card p-6 max-w-md w-full mx-4 interactive-card">
             <h3 className="text-lg font-semibold text-white mb-4">Confirm Overwrite</h3>
-            <p className="text-gray-300 mb-6">
+            <p className="text-gray-200 mb-6">
               This will overwrite your current webhook configuration. Are you sure you want to continue?
             </p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={cancelApplyTemplate}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+                className="flex-1 neumorph px-4 py-2 rounded-lg text-gray-200 hover:text-white transition-all duration-300 transform hover:scale-105"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmApplyTemplate}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150"
+                className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-2 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 neumorph-flat"
               >
                 Overwrite
               </button>

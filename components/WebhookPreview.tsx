@@ -160,12 +160,12 @@ export default function WebhookPreview({
   }, [embedsData])
 
   return (
-    <div className="bg-[#36393F] p-4 rounded-lg min-h-[200px] text-white font-sans text-base leading-relaxed">
+    <div className="glass-card p-4 rounded-lg min-h-[200px] text-white font-sans text-base leading-relaxed interactive-card">
       <div className="flex items-start">
         <img
           src={previewAvatar}
           alt="Avatar"
-          className="w-10 h-10 rounded-full mr-4"
+          className="w-10 h-10 rounded-full mr-4 neumorph-flat"
           onError={event => {
             event.currentTarget.src = DEFAULT_AVATAR
           }}
@@ -175,13 +175,13 @@ export default function WebhookPreview({
             <span className="font-semibold text-white mr-2">
               {previewUsername}
             </span>
-            <span className="text-gray-400 text-xs">
+            <span className="text-gray-300 text-xs">
               {timestampText}
             </span>
           </div>
           {message.trim() && (
             <div
-              className="text-gray-200 whitespace-pre-wrap prose max-w-none"
+              className="text-gray-100 whitespace-pre-wrap prose max-w-none"
               dangerouslySetInnerHTML={{ __html: marked.parse(message.trim()) }}
             />
           )}

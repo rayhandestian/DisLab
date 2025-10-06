@@ -55,14 +55,14 @@ export default function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-lg p-1"
+        className="flex items-center gap-2 neumorph-flat px-2 py-1 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500"
         aria-label="User menu"
         aria-expanded={isOpen}
       >
         <img
           src={avatarUrl}
           alt={username}
-          className="w-8 h-8 rounded-full"
+          className="w-8 h-8 rounded-full neumorph-flat"
           onError={(e) => {
             e.currentTarget.src = `https://cdn.discordapp.com/embed/avatars/0.png`
           }}
@@ -71,7 +71,7 @@ export default function UserMenu() {
           {username}
         </span>
         <svg
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+          className={`w-4 h-4 text-gray-300 transition-transform duration-300 ${
             isOpen ? 'rotate-180' : ''
           }`}
           fill="none"
@@ -83,23 +83,23 @@ export default function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-2 w-48 glass-card shadow-2xl py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
           <Link
             href="/account"
             onClick={() => setIsOpen(false)}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-150"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-white transition-all duration-300 rounded-lg mx-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
             View Profile
           </Link>
-          
-          <div className="border-t border-gray-700 my-1" />
-          
+
+          <div className="border-t border-white/20 my-1 mx-2" />
+
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-150 text-left"
+            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-200 hover:bg-white/10 hover:text-white transition-all duration-300 text-left rounded-lg mx-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

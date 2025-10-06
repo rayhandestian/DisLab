@@ -51,16 +51,22 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-gray-800 rounded-2xl shadow-lg p-8 text-center">
-        <h1 className="text-3xl font-bold text-indigo-400 mb-4">DisLab</h1>
-        <p className="text-gray-400 mb-8">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mix-blend-multiply filter blur-2xl animate-float"></div>
+        <div className="absolute bottom-20 right-20 w-64 h-64 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full mix-blend-multiply filter blur-2xl animate-float" style={{animationDelay: '1s'}}></div>
+      </div>
+
+      <div className="max-w-md w-full glass-card shadow-2xl p-8 text-center interactive-card relative z-10">
+        <h1 className="text-3xl font-bold gradient-text mb-4">DisLab</h1>
+        <p className="text-gray-300 mb-8">
           Schedule Discord webhooks and manage your Discord tools. Login with Discord to get started.
         </p>
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-150 shadow-md flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 neumorph-flat flex items-center justify-center gap-2"
         >
           {loading ? (
             'Loading...'

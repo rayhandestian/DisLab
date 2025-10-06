@@ -59,30 +59,30 @@ export default function ScheduleList({ refresh }: { refresh?: number }) {
   }
 
   if (loading) {
-    return <div className="text-gray-400">Loading schedules...</div>
+    return <div className="text-gray-300 animate-pulse">Loading schedules...</div>
   }
 
   if (schedules.length === 0) {
-    return <div className="text-gray-400">No schedules yet. Create your first one above!</div>
+    return <div className="text-gray-300 text-center py-8">No schedules yet. Create your first one above!</div>
   }
 
   return (
     <div className="space-y-4">
       {schedules.map((schedule) => (
-        <div key={schedule.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <div key={schedule.id} className="glass-card p-4 interactive-card">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-lg font-semibold text-white">{schedule.name}</h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-300 text-sm">
                 Scheduled for: {new Date(schedule.schedule_time).toLocaleString()}
               </p>
-              <p className="text-gray-400 text-sm">
-                Status: {schedule.is_active ? 'Active' : 'Sent'}
+              <p className="text-gray-300 text-sm">
+                Status: <span className={schedule.is_active ? 'text-green-400' : 'text-gray-400'}>{schedule.is_active ? 'Active' : 'Sent'}</span>
               </p>
             </div>
             <button
               onClick={() => deleteSchedule(schedule.id)}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded text-sm"
+              className="neumorph px-3 py-1 rounded text-sm text-red-300 hover:text-red-200 transition-all duration-300 transform hover:scale-105"
             >
               Delete
             </button>

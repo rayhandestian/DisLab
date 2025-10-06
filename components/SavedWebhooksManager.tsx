@@ -225,17 +225,17 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
   }
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 sm:p-8 mt-6">
+    <div className="glass-card p-6 sm:p-8 mt-6 interactive-card">
       <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-10 h-10 neumorph rounded-xl flex items-center justify-center">
+            <svg className="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-indigo-400">Saved Webhooks</h2>
-            <p className="text-gray-400 text-base">
+            <h2 className="text-2xl font-semibold gradient-text">Saved Webhooks</h2>
+            <p className="text-gray-300 text-base">
               Save your webhook configurations for easy scheduling • {savedWebhooks.length} / 10 saved
             </p>
           </div>
@@ -243,7 +243,7 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
         <button
           type="button"
           onClick={handleNewWebhook}
-          className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl transition duration-150 flex items-center gap-3 text-base"
+          className="neumorph px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-3 text-base text-gray-200 hover:text-white"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -260,7 +260,7 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
             value={webhookName}
             onChange={event => setWebhookName(event.target.value)}
             placeholder="My awesome webhook"
-            className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full neumorph-inset text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300"
           />
         </div>
         <div className="md:col-span-2">
@@ -269,11 +269,11 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
               type="checkbox"
               checked={saveWebhookUrl}
               onChange={event => setSaveWebhookUrl(event.target.checked)}
-              className="h-4 w-4 rounded bg-gray-600 border-gray-500 text-indigo-600 focus:ring-indigo-500 mt-1"
+              className="h-4 w-4 rounded neumorph bg-gray-600 border-gray-500 text-indigo-600 focus:ring-indigo-500 mt-1"
             />
             <div>
-              <label className="text-sm text-gray-300">Save Webhook URL</label>
-              <p className="text-xs text-yellow-400">Warning: Webhook URLs are sensitive and can be used to send messages to your Discord channel. Only save if necessary.</p>
+              <label className="text-sm text-gray-200">Save Webhook URL</label>
+              <p className="text-xs text-yellow-300">Warning: Webhook URLs are sensitive and can be used to send messages to your Discord channel. Only save if necessary.</p>
             </div>
           </div>
         </div>
@@ -282,7 +282,7 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
             type="button"
             onClick={handleSaveWebhook}
             disabled={saving || !hasBuilderContent(builder)}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-800 text-white font-bold py-3 px-4 rounded-lg transition duration-150 shadow-md"
+            className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 neumorph-flat"
           >
             {saving
               ? 'Saving...'
@@ -295,7 +295,7 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
               type="button"
               onClick={handleDeleteWebhook}
               disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white font-semibold py-3 px-4 rounded-lg transition duration-150"
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 neumorph-flat"
             >
               {deleting ? 'Deleting...' : 'Delete'}
             </button>
@@ -304,30 +304,30 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold text-gray-200 mb-4">
+        <h3 className="text-lg font-semibold text-gray-100 mb-4">
           Your Saved Webhooks ({savedWebhooks.length})
         </h3>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-            <span className="ml-3 text-gray-400">Loading webhooks...</span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div>
+            <span className="ml-3 text-gray-300">Loading webhooks...</span>
           </div>
         ) : savedWebhooks.length === 0 ? (
-          <div className="text-center py-12 bg-gray-900/30 rounded-xl border border-gray-700/50 border-dashed">
-            <svg className="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-12 glass-card rounded-xl border border-white/10 border-dashed">
+            <svg className="w-12 h-12 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
-            <p className="text-gray-400 mb-2">No saved webhooks yet</p>
-            <p className="text-sm text-gray-500">Configure your webhook above and save it for scheduling</p>
+            <p className="text-gray-300 mb-2">No saved webhooks yet</p>
+            <p className="text-sm text-gray-400">Configure your webhook above and save it for scheduling</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             {savedWebhooks.map(webhook => (
               <div
                 key={webhook.id}
-                className={`bg-gray-900/40 border rounded-xl p-6 hover:bg-gray-900/60 transition-all duration-200 cursor-pointer group ${
-                  selectedWebhook?.id === webhook.id ? 'border-indigo-500 bg-indigo-900/20' : 'border-gray-700/50'
+                className={`glass-card p-6 interactive-card cursor-pointer group ${
+                  selectedWebhook?.id === webhook.id ? 'ring-2 ring-indigo-400' : ''
                 }`}
                 onClick={() => handleSelectWebhook(webhook.id)}
               >
@@ -336,25 +336,25 @@ export default function SavedWebhooksManager({ builder }: SavedWebhooksManagerPr
                     <div className="flex items-center">
                       <h4 className="font-semibold text-white truncate">{webhook.name}</h4>
                       {webhook.builder_state?.webhookUrl && (
-                        <svg className="w-4 h-4 text-yellow-400 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-yellow-300 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 truncate">
+                    <p className="text-xs text-gray-300 truncate">
                       {webhook.files?.length || 0} files • Created {new Date(webhook.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                <div className="mt-4 pt-4 border-t border-white/10">
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleSelectWebhook(webhook.id)
                     }}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition duration-150 text-base flex items-center justify-center gap-3 group-hover:bg-indigo-700"
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 neumorph-flat text-base flex items-center justify-center gap-3"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
